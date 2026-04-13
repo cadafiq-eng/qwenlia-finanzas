@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>QwenLIA Finanzas</title>
     
-    <!-- 📱 PWA CONFIGURACIÓN -->
     <link rel="manifest" href="/qwenlia-finanzas/manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="/qwenlia-finanzas/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/qwenlia-finanzas/favicon-32x32.png">
@@ -30,14 +29,14 @@
         .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .theme-btn { cursor: pointer; font-size: 1.2rem; background: none; border: none; color: var(--accent); }
 
-        /* Barras de Navegación */
         .account-bar { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 5px; }
         .sub-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 15px; }
         
-        .acct-btn { padding: 8px 16px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-weight: 600; font-size: 0.9rem; }
+        .acct-btn { padding: 8px 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-weight: 600; font-size: 0.9rem; display:flex; align-items:center; gap:6px; }
         .acct-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .rename-btn { font-size:0.8rem; opacity:0.7; margin-left:4px; }
         
-        .sub-btn { padding: 6px 12px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-size: 0.8rem; opacity: 0.8; }
+        .sub-btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-size: 0.8rem; opacity: 0.8; display:flex; align-items:center; gap:4px; }
         .sub-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); opacity: 1; }
 
         .summary { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid var(--line); }
@@ -65,10 +64,7 @@
         <button class="theme-btn" onclick="toggleTheme()">🌓 Modo</button>
     </div>
 
-    <!-- Barra Principal (Cuentas) -->
     <div class="account-bar" id="account-bar"></div>
-    
-    <!-- Barra Secundaria (Subcuentas) -->
     <div class="sub-bar" id="sub-bar" style="display:none;"></div>
 
     <div style="margin-bottom: 15px; display:flex; gap:10px;">
@@ -124,10 +120,9 @@
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // === VARIABLES ===
     let db = {};
     let active = null;
-    let activeSub = null; // Nuevo: Para filtrar subcuentas
+    let activeSub = null;
     let sortDesc = true;
     let lastSyncTime = 0;
     let pendingChanges = [];
@@ -150,32 +145,16 @@
     async function loadFromCloud() {
         try {
             if(SUPABASE_URL.includes('PON_TU')) return false;
-
-            const { data, error } = await supabase
-                .from('movimientos')
-                .select('*')
-                .eq('user_id', USER_ID)
-                .order('updated_at', { ascending: false });
-
+            const { data, error } = await supabase.from('movimientos').select('*').eq('user_id', USER_ID).order('updated_at', { ascending: false });
             if (error) throw error;
-
             db = {};
             data.forEach(row => {
                 if (!db[row.account]) db[row.account] = { movimientos: [] };
-                db[row.account].movimientos.push({
-                    id: row.id,
-                    fecha: row.fecha,
-                    concepto: row.concepto,
-                    importe: row.importe,
-                    subcuenta: row.subcuenta,
-                    _ts: row.updated_at
-                });
+                db[row.account].movimientos.push({ id: row.id, fecha: row.fecha, concepto: row.concepto, importe: row.importe, subcuenta: row.subcuenta, _ts: row.updated_at });
             });
             lastSyncTime = Date.now();
-            console.log('✅ Conectado a la nube');
             return true;
         } catch (e) {
-            console.warn('⚠️ Offline:', e);
             db = JSON.parse(localStorage.getItem('qwenlia_data')) || {};
             return false;
         }
@@ -183,108 +162,49 @@
 
     async function pushToCloud(movimiento, account, action, isPriority = false) {
         if(SUPABASE_URL.includes('PON_TU')) return;
-
-        const payload = {
-            user_id: USER_ID,
-            account: account,
-            fecha: movimiento.fecha,
-            concepto: movimiento.concepto,
-            importe: movimiento.importe,
-            subcuenta: movimiento.subcuenta || null,
-            updated_at: new Date().toISOString(),
-            priority: isPriority ? DEVICE_PRIORITY : 1,
-            device: IS_IPHONE ? 'iphone' : 'desktop'
-        };
-
+        const payload = { user_id: USER_ID, account, fecha: movimiento.fecha, concepto: movimiento.concepto, importe: movimiento.importe, subcuenta: movimiento.subcuenta || null, updated_at: new Date().toISOString(), priority: isPriority ? DEVICE_PRIORITY : 1, device: IS_IPHONE ? 'iphone' : 'desktop' };
         try {
             if (action === 'insert') {
                 const { data, error } = await supabase.from('movimientos').insert(payload).select();
-                if (error) throw error;
-                movimiento.id = data[0].id;
-            } else if (action === 'update') {
-                await supabase.from('movimientos').update(payload).eq('id', movimiento.id);
-            } else if (action === 'delete') {
-                await supabase.from('movimientos').delete().eq('id', movimiento.id);
-            }
+                if (error) throw error; movimiento.id = data[0].id;
+            } else if (action === 'update') await supabase.from('movimientos').update(payload).eq('id', movimiento.id);
+            else if (action === 'delete') await supabase.from('movimientos').delete().eq('id', movimiento.id);
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
         } catch (e) {
-            console.warn('⚠️ Error sync:', e);
             pendingChanges.push({ movimiento, account, action, isPriority, ts: Date.now() });
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
         }
     }
 
     function subscribeToRealtime() {
-        supabase.channel('qwenlia_sync')
-            .on('postgres_changes', { 
-                event: '*', 
-                schema: 'public', 
-                table: 'movimientos',
-                filter: `user_id=eq.${USER_ID}`
-            }, async payload => {
-                const changePriority = payload.new?.priority || 0;
-                const changeTime = new Date(payload.new?.updated_at).getTime();
-                
-                if (changePriority >= DEVICE_PRIORITY || changeTime > lastSyncTime) {
-                    console.log('🔄 Actualización remota');
-                    await loadFromCloud();
-                    renderAccounts();
-                    renderSubAccounts();
-                    if(active) renderLedger();
-                }
-            })
-            .subscribe();
+        supabase.channel('qwenlia_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'movimientos', filter: `user_id=eq.${USER_ID}` }, async payload => {
+            if ((payload.new?.priority || 0) >= DEVICE_PRIORITY || new Date(payload.new?.updated_at).getTime() > lastSyncTime) {
+                await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
+            }
+        }).subscribe();
     }
 
     async function syncPendingQueue() {
         if (pendingChanges.length === 0) return;
-        for (const item of pendingChanges) {
-            await pushToCloud(item.movimiento, item.account, item.action, item.isPriority);
-        }
+        for (const item of pendingChanges) await pushToCloud(item.movimiento, item.account, item.action, item.isPriority);
         pendingChanges = [];
-        await loadFromCloud();
-        renderAccounts();
-        renderSubAccounts();
-        if(active) renderLedger();
+        await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
     }
 
     async function migrateFromLocalStorage() {
-        const oldData = JSON.parse(localStorage.getItem('clau_lia_v2_pro'));
-        const newData = JSON.parse(localStorage.getItem('qwenlia_data'));
-        let source = oldData || newData;
-        if (!source) return;
-
+        const oldData = JSON.parse(localStorage.getItem('clau_lia_v2_pro')) || JSON.parse(localStorage.getItem('qwenlia_data'));
+        if (!oldData) return;
         console.log('🔄 Migrando...');
-        for (const [accName, accData] of Object.entries(source)) {
-            for (const mov of accData.movimientos) {
-                await supabase.from('movimientos').insert({
-                    user_id: USER_ID,
-                    account: accName,
-                    fecha: mov.fecha,
-                    concepto: mov.concepto,
-                    importe: mov.importe,
-                    subcuenta: mov.subcuenta,
-                    updated_at: new Date().toISOString(),
-                    priority: 1,
-                    device: 'migration'
-                });
+        for (const [acc, data] of Object.entries(oldData)) {
+            for (const m of data.movimientos) {
+                await supabase.from('movimientos').insert({ user_id: USER_ID, account: acc, fecha: m.fecha, concepto: m.concepto, importe: m.importe, subcuenta: m.subcuenta, updated_at: new Date().toISOString(), priority: 1, device: 'migration' });
             }
         }
-        console.log('✅ Migración completada');
-        await loadFromCloud();
-        renderAccounts();
-        renderSubAccounts();
-        if(active) renderLedger();
+        await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
     }
 
-    // === UI FUNCTIONS ===
     window.toggleTheme = () => document.body.classList.toggle('dark');
-    window.sync = () => {
-        localStorage.setItem('qwenlia_data', JSON.stringify(db));
-        renderAccounts();
-        renderSubAccounts();
-        if(active) renderLedger();
-    }
+    window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); renderAccounts(); renderSubAccounts(); if(active) renderLedger(); }
 
     function renderAccounts() {
         const bar = document.getElementById('account-bar');
@@ -293,7 +213,7 @@
             const saldo = db[name].movimientos.reduce((a, b) => a + Number(b.importe), 0);
             const btn = document.createElement('button');
             btn.className = `acct-btn ${active === name ? 'active' : ''}`;
-            btn.innerText = `${name} ($${saldo.toFixed(0)})`;
+            btn.innerHTML = `${name} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameAccount('${name}')">✏️</span>`;
             btn.onclick = () => { active = name; activeSub = null; sync(); };
             bar.appendChild(btn);
         });
@@ -302,33 +222,21 @@
     function renderSubAccounts() {
         const bar = document.getElementById('sub-bar');
         bar.innerHTML = '';
-        if (!active || !db[active]) {
-            bar.style.display = 'none';
-            return;
-        }
-
+        if (!active || !db[active]) { bar.style.display = 'none'; return; }
         const movs = db[active].movimientos;
         const subs = [...new Set(movs.map(m => m.subcuenta).filter(Boolean))];
-
-        if (subs.length === 0) {
-            bar.style.display = 'none';
-            return;
-        }
-
+        if (subs.length === 0) { bar.style.display = 'none'; return; }
         bar.style.display = 'flex';
-        
-        // Botón "Todos"
         const allBtn = document.createElement('button');
         allBtn.className = `sub-btn ${activeSub === null ? 'active' : ''}`;
         allBtn.innerText = 'Todos';
         allBtn.onclick = () => { activeSub = null; renderSubAccounts(); renderLedger(); };
         bar.appendChild(allBtn);
-
         subs.forEach(sub => {
             const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
             const btn = document.createElement('button');
             btn.className = `sub-btn ${activeSub === sub ? 'active' : ''}`;
-            btn.innerText = `${sub} ($${saldo.toFixed(0)})`;
+            btn.innerHTML = `${sub} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameSubaccount('${sub}')">✏️</span>`;
             btn.onclick = () => { activeSub = sub; renderSubAccounts(); renderLedger(); };
             bar.appendChild(btn);
         });
@@ -338,93 +246,63 @@
         document.getElementById('summary-view').style.display = 'block';
         document.getElementById('table-section').style.display = 'block';
         document.getElementById('btn-del').style.display = 'inline-block';
-        
-        const body = document.getElementById('ledger');
-        body.innerHTML = '';
+        const body = document.getElementById('ledger'); body.innerHTML = '';
         if (!db[active]) return;
-
-        // Filtrar si hay una subcuenta activa
         let movs = [...db[active].movimientos];
-        if (activeSub) {
-            movs = movs.filter(m => m.subcuenta === activeSub);
-            document.getElementById('saldo-label').innerText = `SALDO SUBCUENTA: ${activeSub}`;
-        } else {
-            document.getElementById('saldo-label').innerText = 'SALDO TOTAL EN CUENTA';
-        }
-
+        if (activeSub) { movs = movs.filter(m => m.subcuenta === activeSub); document.getElementById('saldo-label').innerText = `SALDO SUBCUENTA: ${activeSub}`; }
+        else document.getElementById('saldo-label').innerText = 'SALDO TOTAL EN CUENTA';
         let ing = 0, egr = 0;
         movs.forEach(m => { if(m.importe > 0) ing += m.importe; else egr += m.importe; });
-        const saldo = ing + egr;
-
-        document.getElementById('saldo-total').innerText = `$${saldo.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+        document.getElementById('saldo-total').innerText = `$${(ing+egr).toLocaleString(undefined, {minimumFractionDigits:2})}`;
         document.getElementById('kpi-ing').innerText = `+$${ing.toLocaleString()}`;
         document.getElementById('kpi-egr').innerText = `-$${Math.abs(egr).toLocaleString()}`;
-        document.getElementById('kpi-neto').innerText = `$${saldo.toLocaleString()}`;
-
+        document.getElementById('kpi-neto').innerText = `$${(ing+egr).toLocaleString()}`;
         movs.sort((a,b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
-
-        movs.forEach((m) => {
+        movs.forEach(m => {
             const tag = m.subcuenta ? `<span class="tag-sub">${m.subcuenta}</span>` : '';
-            body.innerHTML += `<tr>
-                <td style="color:#888; font-size:0.8rem">${m.fecha}</td>
-                <td style="font-weight:600">${tag}${m.concepto}</td>
-                <td style="text-align:right; color:${m.importe >= 0 ? 'var(--green)':'var(--red)'}; font-family:monospace">
-                    $${m.importe.toLocaleString(undefined, {minimumFractionDigits:2})}
-                </td>
-                <td onclick="window.edit('${m.id}')" style="cursor:pointer">✏️</td>
-            </tr>`;
+            body.innerHTML += `<tr><td style="color:#888; font-size:0.8rem">${m.fecha}</td><td style="font-weight:600">${tag}${m.concepto}</td><td style="text-align:right; color:${m.importe >= 0 ? 'var(--green)':'var(--red)'}; font-family:monospace">$${m.importe.toLocaleString(undefined, {minimumFractionDigits:2})}</td><td onclick="window.edit('${m.id}')" style="cursor:pointer">✏️</td></tr>`;
         });
     }
 
+    // ✅ CSV IMPORT FIX: Lógica restaurada + soporte decimales
     window.importCSV = async function(e) {
         if(!active) return alert("Selecciona una categoría primero");
         const file = e.target.files[0];
         const subName = file.name.replace('.csv', '').substring(0, 8);
         const reader = new FileReader();
-        
         reader.onload = async (ev) => {
             const content = ev.target.result.replace(/^\ufeff/, "").replace(/\r/g, "");
             const lines = content.split("\n").filter(l => l.trim() !== "");
             if(lines.length < 2) return;
-            
             const headers = lines[0].toLowerCase().split(",").map(h => h.trim());
             const iF = headers.findIndex(h => h.includes("date") || h.includes("fecha"));
             const iN = headers.findIndex(h => h.includes("note") || h.includes("concepto"));
+            const iInc = headers.findIndex(h => h.includes("income") || h.includes("ingreso") || h.includes("abono"));
+            const iExp = headers.findIndex(h => h.includes("expense") || h.includes("egreso") || h.includes("retiro"));
             const iImp = headers.findIndex(h => h.includes("amount") || h.includes("importe"));
-
+            let count = 0;
             for (let i = 1; i < lines.length; i++) {
-                const c = lines[i].split(",").map(col => col.trim());
-                let m = parseFloat(c[iImp]) || 0;
+                const c = lines[i].split(",").map(col => col.trim().replace(',', '.'));
+                let m = 0;
+                if(iInc !== -1 || iExp !== -1) m = (parseFloat(c[iInc]) || 0) - (parseFloat(c[iExp]) || 0);
+                else m = parseFloat(c[iImp]) || 0;
                 if(!isNaN(m)) {
-                    const newMov = {
-                        id: 'temp_'+Date.now()+'_'+i,
-                        fecha: c[iF] || new Date().toISOString().split('T')[0],
-                        concepto: c[iN] || "Carga",
-                        importe: m,
-                        subcuenta: subName
-                    };
+                    const newMov = { id: 'temp_'+Date.now()+'_'+i, fecha: c[iF] || new Date().toISOString().split('T')[0], concepto: c[iN] || "Carga", importe: m, subcuenta: subName };
                     db[active].movimientos.push(newMov);
                     await pushToCloud(newMov, active, 'insert', IS_IPHONE);
+                    count++;
                 }
             }
-            renderSubAccounts(); // Actualizar barra de subcuentas
-            sync();
-            alert("Importado");
+            renderSubAccounts(); sync();
+            alert(`✅ Importados ${count} movimientos`);
         };
         reader.readAsText(file);
     }
 
     window.save = async function() {
-        const f = document.getElementById('f-fecha').value, 
-              n = document.getElementById('f-nota').value, 
-              m = parseFloat(document.getElementById('f-monto').value), 
-              id = document.getElementById('edit-id').value;
-        
+        const f = document.getElementById('f-fecha').value, n = document.getElementById('f-nota').value, m = parseFloat(document.getElementById('f-monto').value), id = document.getElementById('edit-id').value;
         if(!f || !n || isNaN(m)) return alert("Datos incompletos");
-        
-        // Si estamos en modo subcuenta, heredar ese nombre
         const subVal = activeSub || (id ? db[active].movimientos.find(x => x.id === id).subcuenta : 'Manual');
-
         if(id) {
             const i = db[active].movimientos.findIndex(x => x.id === id);
             const updated = { id, fecha:f, concepto:n, importe:m, subcuenta: subVal };
@@ -435,35 +313,32 @@
             db[active].movimientos.push(newMov);
             await pushToCloud(newMov, active, 'insert', IS_IPHONE);
         }
-        
-        document.getElementById('f-nota').value = ''; 
-        document.getElementById('f-monto').value = ''; 
-        document.getElementById('edit-id').value = '';
+        document.getElementById('f-nota').value = ''; document.getElementById('f-monto').value = ''; document.getElementById('edit-id').value = '';
         sync();
     }
 
-    window.addAccount = function() {
-        const n = prompt("Nombre:");
-        if(n && !db[n]) { db[n] = { movimientos: [] }; active = n; activeSub = null; sync(); }
-    }
-
-    window.deleteAccount = async function() { 
-        if(confirm("¿Eliminar?")) { 
-            await supabase.from('movimientos').delete().eq('user_id', USER_ID).eq('account', active);
-            delete db[active]; active = null; activeSub = null; sync(); location.reload(); 
-        } 
-    }
-
-    window.edit = function(id) {
-        const m = db[active].movimientos.find(x => x.id === id);
-        document.getElementById('f-fecha').value = m.fecha; 
-        document.getElementById('f-nota').value = m.concepto;
-        document.getElementById('f-monto').value = m.importe; 
-        document.getElementById('edit-id').value = m.id;
-        window.scrollTo(0,0);
-    }
-
+    window.addAccount = function() { const n = prompt("Nombre:"); if(n && !db[n]) { db[n] = { movimientos: [] }; active = n; activeSub = null; sync(); } }
+    window.deleteAccount = async function() { if(confirm("¿Eliminar?")) { await supabase.from('movimientos').delete().eq('user_id', USER_ID).eq('account', active); delete db[active]; active = null; activeSub = null; sync(); location.reload(); } }
+    window.edit = function(id) { const m = db[active].movimientos.find(x => x.id === id); document.getElementById('f-fecha').value = m.fecha; document.getElementById('f-nota').value = m.concepto; document.getElementById('f-monto').value = m.importe; document.getElementById('edit-id').value = m.id; window.scrollTo(0,0); }
     window.toggleSort = function() { sortDesc = !sortDesc; renderLedger(); }
+
+    // ✏️ NUEVO: Renombrar Cuentas y Subcuentas
+    window.renameAccount = async function(oldName) {
+        const newName = prompt("Nuevo nombre para la cuenta:", oldName);
+        if (!newName || newName === oldName || db[newName]) return alert("Nombre inválido o ya existe.");
+        db[newName] = db[oldName]; delete db[oldName];
+        await supabase.from('movimientos').update({ account: newName }).eq('user_id', USER_ID).eq('account', oldName);
+        if (active === oldName) active = newName;
+        activeSub = null; sync();
+    }
+    window.renameSubaccount = async function(oldSub) {
+        const newSub = prompt("Nuevo nombre para la subcuenta:", oldSub);
+        if (!newSub || newSub === oldSub) return;
+        db[active].movimientos.forEach(m => { if (m.subcuenta === oldSub) m.subcuenta = newSub; });
+        await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', USER_ID).eq('account', active).eq('subcuenta', oldSub);
+        renderSubAccounts(); renderLedger();
+        localStorage.setItem('qwenlia_data', JSON.stringify(db));
+    }
 </script>
 </body>
 </html>
