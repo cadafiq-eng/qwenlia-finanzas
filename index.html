@@ -1,1 +1,408 @@
 <!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QwenLIA Finanzas</title>
+    
+    <link rel="manifest" href="/qwenlia-finanzas/manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="/qwenlia-finanzas/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/qwenlia-finanzas/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/qwenlia-finanzas/favicon-16x16.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="QwenLIA">
+    <meta name="theme-color" content="#e8a020">
+
+    <style>
+        :root {
+            --bg: #f4f4f9; --text: #333; --accent: #e8a020;
+            --card: #ffffff; --line: #ddd; --green: #27ae60; --red: #c0392b;
+        }
+        body.dark {
+            --bg: #0d0d1a; --text: #e8e4da; --accent: #e8a020;
+            --card: #1a1a2e; --line: #2e2e42; --green: #4ade80; --red: #f87171;
+        }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .theme-btn { cursor: pointer; font-size: 1.2rem; background: none; border: none; color: var(--accent); }
+
+        .account-bar { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 5px; }
+        .sub-bar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 15px; }
+        
+        .acct-btn { padding: 8px 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-weight: 600; font-size: 0.9rem; display:flex; align-items:center; gap:6px; }
+        .acct-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .rename-btn { font-size:0.8rem; opacity:0.7; margin-left:4px; }
+        
+        .sub-btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-size: 0.8rem; opacity: 0.8; display:flex; align-items:center; gap:4px; }
+        .sub-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); opacity: 1; }
+
+        .summary { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid var(--line); }
+        .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .kpi-val { font-size: 1rem; font-weight: bold; font-family: monospace; }
+
+        .form-box { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; min-width: 130px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-save { background: var(--green); color: white; flex: 2; }
+        .btn-import { background: var(--accent); color: white; text-align: center; cursor: pointer; flex: 1; }
+
+        .table-wrap { background: var(--card); border-radius: 12px; overflow-x: auto; border: 1px solid var(--line); }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--line); }
+        th { background: rgba(0,0,0,0.05); font-size: 0.75rem; text-transform: uppercase; color: #888; cursor: pointer; }
+        .tag-sub { font-size: 0.7rem; background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: bold; }
+    </style>
+</head>
+<body class="dark">
+
+<div class="container">
+    <div class="nav">
+        <h2 style="margin:0;">Qwen<span style="color:var(--accent)">LIA</span></h2>
+        <button class="theme-btn" onclick="toggleTheme()">🌓 Modo</button>
+    </div>
+
+    <div class="account-bar" id="account-bar"></div>
+    <div class="sub-bar" id="sub-bar" style="display:none;"></div>
+
+    <div style="margin-bottom: 15px; display:flex; gap:10px;">
+        <button class="btn" style="background:var(--line); color:var(--text);" onclick="addAccount()">+ Nueva Categoría</button>
+        <button class="btn" style="background:#fcc; color:red; display:none;" id="btn-del" onclick="deleteAccount()">Eliminar Cuenta</button>
+    </div>
+
+    <div class="summary" id="summary-view" style="display:none">
+        <small style="color:#888;" id="saldo-label">SALDO TOTAL EN CUENTA</small><br>
+        <span id="saldo-total" style="font-size:2rem; font-weight:bold;">$0.00</span>
+        <div class="kpi-grid">
+            <div><small>INGRESOS</small><br><span id="kpi-ing" class="kpi-val" style="color:var(--green)">$0</span></div>
+            <div><small>EGRESOS</small><br><span id="kpi-egr" class="kpi-val" style="color:var(--red)">$0</span></div>
+            <div><small>NETO</small><br><span id="kpi-neto" class="kpi-val"></span></div>
+        </div>
+    </div>
+
+    <div class="form-box">
+        <input type="date" id="f-fecha">
+        <input type="text" id="f-nota" placeholder="Concepto">
+        <input type="number" id="f-monto" step="0.01" placeholder="Importe">
+        <input type="hidden" id="edit-id">
+        <button class="btn btn-save" onclick="save()">Guardar</button>
+        <label class="btn btn-import">
+            📂 CSV <input type="file" id="csv" style="display:none" onchange="importCSV(event)">
+        </label>
+    </div>
+
+    <div class="table-wrap" id="table-section" style="display:none">
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="toggleSort()">Fecha ↕</th>
+                    <th>Subcuenta / Concepto</th>
+                    <th style="text-align:right">Monto</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="ledger"></tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    const SUPABASE_URL = 'https://ufulbzjgzidcnmnfnhau.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_iCW8Eh0uCS9ssnpZ0GEiyA_J99pTMv_';
+    const USER_ID = 'qwenlia_user';
+    const IS_IPHONE = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const DEVICE_PRIORITY = IS_IPHONE ? 10 : 1;
+
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let db = {};
+    let active = null;
+    let activeSub = null;
+    let sortDesc = true;
+    let lastSyncTime = 0;
+    let pendingChanges = [];
+
+    window.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('f-fecha').valueAsDate = new Date();
+        await initApp();
+    });
+
+    async function initApp() {
+        const success = await loadFromCloud();
+        if (success) subscribeToRealtime();
+        if (success && Object.keys(db).length === 0) await migrateFromLocalStorage();
+        renderAccounts();
+        renderSubAccounts();
+        if(active) renderLedger();
+        window.addEventListener('online', () => syncPendingQueue());
+    }
+
+    async function loadFromCloud() {
+        try {
+            if(SUPABASE_URL.includes('PON_TU')) return false;
+            const { data, error } = await supabase.from('movimientos').select('*').eq('user_id', USER_ID).order('updated_at', { ascending: false });
+            if (error) throw error;
+            db = {};
+            data.forEach(row => {
+                if (!db[row.account]) db[row.account] = { movimientos: [] };
+                db[row.account].movimientos.push({ id: row.id, fecha: row.fecha, concepto: row.concepto, importe: row.importe, subcuenta: row.subcuenta, _ts: row.updated_at });
+            });
+            lastSyncTime = Date.now();
+            return true;
+        } catch (e) {
+            db = JSON.parse(localStorage.getItem('qwenlia_data')) || {};
+            return false;
+        }
+    }
+
+    async function pushToCloud(movimiento, account, action, isPriority = false) {
+        if(SUPABASE_URL.includes('PON_TU')) return;
+        const payload = { user_id: USER_ID, account, fecha: movimiento.fecha, concepto: movimiento.concepto, importe: movimiento.importe, subcuenta: movimiento.subcuenta || null, updated_at: new Date().toISOString(), priority: isPriority ? DEVICE_PRIORITY : 1, device: IS_IPHONE ? 'iphone' : 'desktop' };
+        try {
+            if (action === 'insert') {
+                const { data, error } = await supabase.from('movimientos').insert(payload).select();
+                if (error) throw error; movimiento.id = data[0].id;
+            } else if (action === 'update') await supabase.from('movimientos').update(payload).eq('id', movimiento.id);
+            else if (action === 'delete') await supabase.from('movimientos').delete().eq('id', movimiento.id);
+            localStorage.setItem('qwenlia_data', JSON.stringify(db));
+        } catch (e) {
+            pendingChanges.push({ movimiento, account, action, isPriority, ts: Date.now() });
+            localStorage.setItem('qwenlia_data', JSON.stringify(db));
+        }
+    }
+
+    function subscribeToRealtime() {
+        supabase.channel('qwenlia_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'movimientos', filter: `user_id=eq.${USER_ID}` }, async payload => {
+            if ((payload.new?.priority || 0) >= DEVICE_PRIORITY || new Date(payload.new?.updated_at).getTime() > lastSyncTime) {
+                await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
+            }
+        }).subscribe();
+    }
+
+    async function syncPendingQueue() {
+        if (pendingChanges.length === 0) return;
+        for (const item of pendingChanges) await pushToCloud(item.movimiento, item.account, item.action, item.isPriority);
+        pendingChanges = [];
+        await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
+    }
+
+    async function migrateFromLocalStorage() {
+        const oldData = JSON.parse(localStorage.getItem('clau_lia_v2_pro')) || JSON.parse(localStorage.getItem('qwenlia_data'));
+        if (!oldData) return;
+        console.log('🔄 Migrando...');
+        for (const [acc, data] of Object.entries(oldData)) {
+            for (const m of data.movimientos) {
+                await supabase.from('movimientos').insert({ user_id: USER_ID, account: acc, fecha: m.fecha, concepto: m.concepto, importe: m.importe, subcuenta: m.subcuenta, updated_at: new Date().toISOString(), priority: 1, device: 'migration' });
+            }
+        }
+        await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
+    }
+
+    window.toggleTheme = () => document.body.classList.toggle('dark');
+    window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); renderAccounts(); renderSubAccounts(); if(active) renderLedger(); }
+
+    function renderAccounts() {
+        const bar = document.getElementById('account-bar');
+        bar.innerHTML = '';
+        Object.keys(db).forEach(name => {
+            const saldo = db[name].movimientos.reduce((a, b) => a + Number(b.importe), 0);
+            const btn = document.createElement('button');
+            btn.className = `acct-btn ${active === name ? 'active' : ''}`;
+            btn.innerHTML = `${name} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameAccount('${name}')">✏️</span>`;
+            btn.onclick = () => { active = name; activeSub = null; sync(); };
+            bar.appendChild(btn);
+        });
+    }
+
+    function renderSubAccounts() {
+        const bar = document.getElementById('sub-bar');
+        bar.innerHTML = '';
+        if (!active || !db[active]) { bar.style.display = 'none'; return; }
+        const movs = db[active].movimientos;
+        const subs = [...new Set(movs.map(m => m.subcuenta).filter(Boolean))];
+        if (subs.length === 0) { bar.style.display = 'none'; return; }
+        bar.style.display = 'flex';
+        const allBtn = document.createElement('button');
+        allBtn.className = `sub-btn ${activeSub === null ? 'active' : ''}`;
+        allBtn.innerText = 'Todos';
+        allBtn.onclick = () => { activeSub = null; renderSubAccounts(); renderLedger(); };
+        bar.appendChild(allBtn);
+        subs.forEach(sub => {
+            const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
+            const btn = document.createElement('button');
+            btn.className = `sub-btn ${activeSub === sub ? 'active' : ''}`;
+            btn.innerHTML = `${sub} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameSubaccount('${sub}')">✏️</span>`;
+            btn.onclick = () => { activeSub = sub; renderSubAccounts(); renderLedger(); };
+            bar.appendChild(btn);
+        });
+    }
+
+    function renderLedger() {
+        document.getElementById('summary-view').style.display = 'block';
+        document.getElementById('table-section').style.display = 'block';
+        document.getElementById('btn-del').style.display = 'inline-block';
+        const body = document.getElementById('ledger'); body.innerHTML = '';
+        if (!db[active]) return;
+        let movs = [...db[active].movimientos];
+        if (activeSub) { movs = movs.filter(m => m.subcuenta === activeSub); document.getElementById('saldo-label').innerText = `SALDO SUBCUENTA: ${activeSub}`; }
+        else document.getElementById('saldo-label').innerText = 'SALDO TOTAL EN CUENTA';
+        let ing = 0, egr = 0;
+        movs.forEach(m => { if(m.importe > 0) ing += m.importe; else egr += m.importe; });
+        document.getElementById('saldo-total').innerText = `$${(ing+egr).toLocaleString(undefined, {minimumFractionDigits:2})}`;
+        document.getElementById('kpi-ing').innerText = `+$${ing.toLocaleString()}`;
+        document.getElementById('kpi-egr').innerText = `-$${Math.abs(egr).toLocaleString()}`;
+        document.getElementById('kpi-neto').innerText = `$${(ing+egr).toLocaleString()}`;
+        movs.sort((a,b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
+        movs.forEach(m => {
+            const tag = m.subcuenta ? `<span class="tag-sub">${m.subcuenta}</span>` : '';
+            body.innerHTML += `<tr><td style="color:#888; font-size:0.8rem">${m.fecha}</td><td style="font-weight:600">${tag}${m.concepto}</td><td style="text-align:right; color:${m.importe >= 0 ? 'var(--green)':'var(--red)'}; font-family:monospace">$${m.importe.toLocaleString(undefined, {minimumFractionDigits:2})}</td><td onclick="window.edit('${m.id}')" style="cursor:pointer">✏️</td></tr>`;
+        });
+    }
+
+    // ✅ CSV IMPORT MEJORADO
+    window.importCSV = async function(e) {
+        if(!active) return alert("Selecciona una categoría primero");
+        const file = e.target.files[0];
+        const subName = file.name.replace('.csv', '').substring(0, 8);
+        const reader = new FileReader();
+        
+        reader.onload = async (ev) => {
+            const content = ev.target.result.replace(/^\ufeff/, "").replace(/\r/g, "");
+            const lines = content.split("\n").filter(l => l.trim() !== "");
+            if(lines.length < 2) return;
+            
+            // Detectar separador (coma o punto y coma)
+            const separator = lines[0].includes(';') ? ';' : ',';
+            
+            // Parsear headers y limpiar comas extra
+            const headers = lines[0].split(separator).map(h => h.trim().toLowerCase().replace(/,$/, ''));
+            
+            console.log('📊 Headers detectados:', headers);
+            console.log('🔍 Separador:', separator === ';' ? 'punto y coma (;)' : 'coma (,)');
+            
+            // Encontrar índices de columnas
+            const iF = headers.findIndex(h => h.includes("date") || h.includes("fecha"));
+            const iN = headers.findIndex(h => h.includes("note") || h.includes("concepto") || h.includes("descripcion") || h.includes("descripción"));
+            const iInc = headers.findIndex(h => h.includes("income") || h.includes("ingreso") || h.includes("abono") || h.includes("entrada"));
+            const iExp = headers.findIndex(h => h.includes("expense") || h.includes("egreso") || h.includes("retiro") || h.includes("salida") || h.includes("gasto"));
+            const iImp = headers.findIndex(h => h.includes("amount") || h.includes("importe") || h.includes("monto"));
+            
+            console.log('📍 Índices: fecha=', iF, 'nota=', iN, 'ingreso=', iInc, 'egreso=', iExp, 'importe=', iImp);
+            
+            let count = 0;
+            let skipped = 0;
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if(!line) continue;
+                
+                const rawCols = line.split(separator);
+                // Limpiar comas extra al final
+                const c = rawCols.map(col => col.trim().replace(/,$/, ''));
+                
+                // Saltar filas sin fecha o sin concepto (filas de totales/resumen)
+                if (!c[iF] || !c[iN] || (iF === -1 && iN === -1)) {
+                    console.log('⏭️ Fila', i+1, 'saltada (sin fecha/concepto):', c);
+                    skipped++;
+                    continue;
+                }
+                
+                // Normalizar fecha (DD/MM/YYYY → YYYY-MM-DD)
+                let fechaRaw = c[iF];
+                let fecha = fechaRaw;
+                
+                if (fechaRaw.includes('/')) {
+                    // Formato DD/MM/YYYY o DD-MM-YYYY
+                    const parts = fechaRaw.split('/');
+                    if (parts.length === 3) {
+                        // Asumir DD/MM/YYYY
+                        fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                    }
+                } else if (!fechaRaw.includes('-') && fechaRaw.length === 8) {
+                    // Formato YYYYMMDD
+                    fecha = `${fechaRaw.substring(0,4)}-${fechaRaw.substring(4,6)}-${fechaRaw.substring(6,8)}`;
+                }
+                
+                // Calcular monto
+                let m = 0;
+                if(iInc !== -1 && iExp !== -1 && c[iInc] && c[iExp]) {
+                    // Tiene columnas separadas de ingreso/egreso
+                    const inc = parseFloat(c[iInc].replace(/[^0-9.-]/g, '')) || 0;
+                    const exp = parseFloat(c[iExp].replace(/[^0-9.-]/g, '')) || 0;
+                    m = inc - exp;
+                } else if (iImp !== -1 && c[iImp]) {
+                    // Tiene columna de importe único
+                    m = parseFloat(c[iImp].replace(/[^0-9.-]/g, '')) || 0;
+                }
+                
+                if(!isNaN(m) && m !== 0) {
+                    const newMov = {
+                        id: 'temp_'+Date.now()+'_'+i,
+                        fecha: fecha,
+                        concepto: c[iN] || "Carga CSV",
+                        importe: m,
+                        subcuenta: subName
+                    };
+                    db[active].movimientos.push(newMov);
+                    await pushToCloud(newMov, active, 'insert', IS_IPHONE);
+                    count++;
+                } else {
+                    console.log('⏭️ Fila', i+1, 'saltada (monto inválido):', m, c);
+                    skipped++;
+                }
+            }
+            
+            renderSubAccounts(); 
+            sync();
+            alert(`✅ Importados: ${count}\n⏭️ Saltadas: ${skipped}\n📁 Subcuenta: ${subName}`);
+            console.log(`✅ Importación completada: ${count} movimientos, ${skipped} saltadas`);
+        };
+        
+        reader.readAsText(file);
+    }
+
+    window.save = async function() {
+        const f = document.getElementById('f-fecha').value, n = document.getElementById('f-nota').value, m = parseFloat(document.getElementById('f-monto').value), id = document.getElementById('edit-id').value;
+        if(!f || !n || isNaN(m)) return alert("Datos incompletos");
+        const subVal = activeSub || (id ? db[active].movimientos.find(x => x.id === id).subcuenta : 'Manual');
+        if(id) {
+            const i = db[active].movimientos.findIndex(x => x.id === id);
+            const updated = { id, fecha:f, concepto:n, importe:m, subcuenta: subVal };
+            db[active].movimientos[i] = updated;
+            await pushToCloud(updated, active, 'update', IS_IPHONE);
+        } else {
+            const newMov = { id: 'temp_'+Date.now(), fecha:f, concepto:n, importe:m, subcuenta: subVal };
+            db[active].movimientos.push(newMov);
+            await pushToCloud(newMov, active, 'insert', IS_IPHONE);
+        }
+        document.getElementById('f-nota').value = ''; document.getElementById('f-monto').value = ''; document.getElementById('edit-id').value = '';
+        sync();
+    }
+
+    window.addAccount = function() { const n = prompt("Nombre:"); if(n && !db[n]) { db[n] = { movimientos: [] }; active = n; activeSub = null; sync(); } }
+    window.deleteAccount = async function() { if(confirm("¿Eliminar?")) { await supabase.from('movimientos').delete().eq('user_id', USER_ID).eq('account', active); delete db[active]; active = null; activeSub = null; sync(); location.reload(); } }
+    window.edit = function(id) { const m = db[active].movimientos.find(x => x.id === id); document.getElementById('f-fecha').value = m.fecha; document.getElementById('f-nota').value = m.concepto; document.getElementById('f-monto').value = m.importe; document.getElementById('edit-id').value = m.id; window.scrollTo(0,0); }
+    window.toggleSort = function() { sortDesc = !sortDesc; renderLedger(); }
+
+    window.renameAccount = async function(oldName) {
+        const newName = prompt("Nuevo nombre para la cuenta:", oldName);
+        if (!newName || newName === oldName || db[newName]) return alert("Nombre inválido o ya existe.");
+        db[newName] = db[oldName]; delete db[oldName];
+        await supabase.from('movimientos').update({ account: newName }).eq('user_id', USER_ID).eq('account', oldName);
+        if (active === oldName) active = newName;
+        activeSub = null; sync();
+    }
+    window.renameSubaccount = async function(oldSub) {
+        const newSub = prompt("Nuevo nombre para la subcuenta:", oldSub);
+        if (!newSub || newSub === oldSub) return;
+        db[active].movimientos.forEach(m => { if (m.subcuenta === oldSub) m.subcuenta = newSub; });
+        await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', USER_ID).eq('account', active).eq('subcuenta', oldSub);
+        renderSubAccounts(); renderLedger();
+        localStorage.setItem('qwenlia_data', JSON.stringify(db));
+    }
+</script>
+</body>
+</html><!DOCTYPE html>
