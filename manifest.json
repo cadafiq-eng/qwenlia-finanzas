@@ -1,1 +1,26 @@
-
+{
+  "name": "QwenLIA Finanzas",
+  "short_name": "QwenLIA",
+  "start_url": "/qwenlia/",
+  "display": "standalone",
+  "background_color": "#0d0d1a",
+  "theme_color": "#e8a020",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/qwenlia/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/qwenlia/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/qwenlia/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
