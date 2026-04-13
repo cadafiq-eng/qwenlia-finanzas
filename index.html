@@ -34,7 +34,7 @@
         
         .acct-btn { padding: 8px 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-weight: 600; font-size: 0.9rem; display:flex; align-items:center; gap:6px; }
         .acct-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-        .rename-btn { font-size:0.8rem; opacity:0.7; margin-left:4px; }
+        .rename-btn { font-size:0.8rem; opacity:0.7; margin-left:4px; cursor: pointer; }
         
         .sub-btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-size: 0.8rem; opacity: 0.8; display:flex; align-items:center; gap:4px; }
         .sub-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); opacity: 1; }
@@ -262,7 +262,21 @@
         });
     }
 
-    // ✅ CSV IMPORT MEJORADO
+    // ✅ SMART CSV PARSER: Respeta comas dentro de comillas
+    function parseCSVLine(text, separator) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char === '"') { inQuotes = !inQuotes; }
+            else if (char === separator && !inQuotes) { result.push(current); current = ''; }
+            else { current += char; }
+        }
+        result.push(current);
+        return result.map(val => val.trim().replace(/^"|"$/g, '')); // Limpia comillas sobrantes
+    }
+
     window.importCSV = async function(e) {
         if(!active) return alert("Selecciona una categoría primero");
         const file = e.target.files[0];
@@ -274,23 +288,15 @@
             const lines = content.split("\n").filter(l => l.trim() !== "");
             if(lines.length < 2) return;
             
-            // Detectar separador (coma o punto y coma)
             const separator = lines[0].includes(';') ? ';' : ',';
-            
-            // Parsear headers y limpiar comas extra
-            const headers = lines[0].split(separator).map(h => h.trim().toLowerCase().replace(/,$/, ''));
+            const headers = parseCSVLine(lines[0], separator).map(h => h.toLowerCase());
             
             console.log('📊 Headers detectados:', headers);
-            console.log('🔍 Separador:', separator === ';' ? 'punto y coma (;)' : 'coma (,)');
             
-            // Encontrar índices de columnas
             const iF = headers.findIndex(h => h.includes("date") || h.includes("fecha"));
-            const iN = headers.findIndex(h => h.includes("note") || h.includes("concepto") || h.includes("descripcion") || h.includes("descripción"));
-            const iInc = headers.findIndex(h => h.includes("income") || h.includes("ingreso") || h.includes("abono") || h.includes("entrada"));
-            const iExp = headers.findIndex(h => h.includes("expense") || h.includes("egreso") || h.includes("retiro") || h.includes("salida") || h.includes("gasto"));
-            const iImp = headers.findIndex(h => h.includes("amount") || h.includes("importe") || h.includes("monto"));
-            
-            console.log('📍 Índices: fecha=', iF, 'nota=', iN, 'ingreso=', iInc, 'egreso=', iExp, 'importe=', iImp);
+            const iN = headers.findIndex(h => h.includes("note") || h.includes("concepto") || h.includes("descripcion"));
+            const iInc = headers.findIndex(h => h.includes("income") || h.includes("ingreso") || h.includes("abono"));
+            const iExp = headers.findIndex(h => h.includes("expense") || h.includes("egreso") || h.includes("retiro"));
             
             let count = 0;
             let skipped = 0;
@@ -299,68 +305,39 @@
                 const line = lines[i].trim();
                 if(!line) continue;
                 
-                const rawCols = line.split(separator);
-                // Limpiar comas extra al final
-                const c = rawCols.map(col => col.trim().replace(/,$/, ''));
+                // Usamos el parser inteligente
+                const c = parseCSVLine(line, separator);
                 
-                // Saltar filas sin fecha o sin concepto (filas de totales/resumen)
-                if (!c[iF] || !c[iN] || (iF === -1 && iN === -1)) {
-                    console.log('⏭️ Fila', i+1, 'saltada (sin fecha/concepto):', c);
-                    skipped++;
-                    continue;
-                }
+                if (!c[iF] || !c[iN]) { skipped++; continue; }
                 
-                // Normalizar fecha (DD/MM/YYYY → YYYY-MM-DD)
                 let fechaRaw = c[iF];
                 let fecha = fechaRaw;
-                
                 if (fechaRaw.includes('/')) {
-                    // Formato DD/MM/YYYY o DD-MM-YYYY
                     const parts = fechaRaw.split('/');
-                    if (parts.length === 3) {
-                        // Asumir DD/MM/YYYY
-                        fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-                    }
+                    if (parts.length === 3) fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
                 } else if (!fechaRaw.includes('-') && fechaRaw.length === 8) {
-                    // Formato YYYYMMDD
                     fecha = `${fechaRaw.substring(0,4)}-${fechaRaw.substring(4,6)}-${fechaRaw.substring(6,8)}`;
                 }
                 
-                // Calcular monto
                 let m = 0;
                 if(iInc !== -1 && iExp !== -1 && c[iInc] && c[iExp]) {
-                    // Tiene columnas separadas de ingreso/egreso
-                    const inc = parseFloat(c[iInc].replace(/[^0-9.-]/g, '')) || 0;
-                    const exp = parseFloat(c[iExp].replace(/[^0-9.-]/g, '')) || 0;
-                    m = inc - exp;
-                } else if (iImp !== -1 && c[iImp]) {
-                    // Tiene columna de importe único
-                    m = parseFloat(c[iImp].replace(/[^0-9.-]/g, '')) || 0;
+                    m = (parseFloat(c[iInc].replace(/[^0-9.-]/g, '')) || 0) - (parseFloat(c[iExp].replace(/[^0-9.-]/g, '')) || 0);
+                } else {
+                    // Lógica fallback para columnas únicas
+                    m = 0; 
                 }
                 
                 if(!isNaN(m) && m !== 0) {
-                    const newMov = {
-                        id: 'temp_'+Date.now()+'_'+i,
-                        fecha: fecha,
-                        concepto: c[iN] || "Carga CSV",
-                        importe: m,
-                        subcuenta: subName
-                    };
+                    const newMov = { id: 'temp_'+Date.now()+'_'+i, fecha, concepto: c[iN] || "Carga CSV", importe: m, subcuenta: subName };
                     db[active].movimientos.push(newMov);
                     await pushToCloud(newMov, active, 'insert', IS_IPHONE);
                     count++;
-                } else {
-                    console.log('⏭️ Fila', i+1, 'saltada (monto inválido):', m, c);
-                    skipped++;
-                }
+                } else { skipped++; }
             }
             
-            renderSubAccounts(); 
-            sync();
-            alert(`✅ Importados: ${count}\n⏭️ Saltadas: ${skipped}\n📁 Subcuenta: ${subName}`);
-            console.log(`✅ Importación completada: ${count} movimientos, ${skipped} saltadas`);
+            renderSubAccounts(); sync();
+            alert(`✅ Importados: ${count}\n⏭️ Saltadas: ${skipped}`);
         };
-        
         reader.readAsText(file);
     }
 
