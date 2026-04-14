@@ -10,6 +10,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/qwenlia-finanzas/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/qwenlia-finanzas/favicon-16x16.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="QwenLIA">
     <meta name="theme-color" content="#e8a020">
@@ -124,6 +125,7 @@
     let sortDesc = true;
     let lastSyncTime = 0;
     let pendingChanges = [];
+    let supabaseConnected = false;
 
     window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('f-fecha').valueAsDate = new Date();
@@ -131,9 +133,13 @@
     });
 
     async function initApp() {
-        const success = await loadFromCloud();
-        if (success) subscribeToRealtime();
-        if (success && Object.keys(db).length === 0) await migrateFromLocalStorage();
+        supabaseConnected = await loadFromCloud();
+        if (supabaseConnected) {
+            subscribeToRealtime();
+        } else {
+            console.warn('⚠️ Modo offline: usando localStorage');
+        }
+        if (supabaseConnected && Object.keys(db).length === 0) await migrateFromLocalStorage();
         renderAccounts();
         renderSubAccounts();
         if(active) renderLedger();
@@ -142,24 +148,32 @@
 
     async function loadFromCloud() {
         try {
-            if(SUPABASE_URL.includes('PON_TU')) return false;
+            if(!SUPABASE_URL || SUPABASE_URL.includes('PON_TU')) return false;
             const { data, error } = await supabase.from('movimientos').select('*').eq('user_id', USER_ID).order('updated_at', { ascending: false });
-            if (error) throw error;
+            if (error) {
+                console.warn('⚠️ Error cargando de Supabase:', error.message);
+                return false;
+            }
             db = {};
             data.forEach(row => {
                 if (!db[row.account]) db[row.account] = { movimientos: [] };
                 db[row.account].movimientos.push({ id: row.id, fecha: row.fecha, concepto: row.concepto, importe: row.importe, subcuenta: row.subcuenta, _ts: row.updated_at });
             });
             lastSyncTime = Date.now();
+            console.log('✅ Conectado a la nube');
             return true;
         } catch (e) {
+            console.warn('⚠️ Offline:', e.message);
             db = JSON.parse(localStorage.getItem('qwenlia_data')) || {};
             return false;
         }
     }
 
     async function pushToCloud(movimiento, account, action, isPriority = false) {
-        if(SUPABASE_URL.includes('PON_TU')) return;
+        if(!supabaseConnected) {
+            localStorage.setItem('qwenlia_data', JSON.stringify(db));
+            return;
+        }
         const payload = { user_id: USER_ID, account, fecha: movimiento.fecha, concepto: movimiento.concepto, importe: movimiento.importe, subcuenta: movimiento.subcuenta || null, updated_at: new Date().toISOString(), priority: isPriority ? DEVICE_PRIORITY : 1, device: IS_IPHONE ? 'iphone' : 'desktop' };
         try {
             if (action === 'insert') {
@@ -169,21 +183,41 @@
             else if (action === 'delete') await supabase.from('movimientos').delete().eq('id', movimiento.id);
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
         } catch (e) {
+            console.warn('⚠️ Error sync, guardando local:', e.message);
             pendingChanges.push({ movimiento, account, action, isPriority, ts: Date.now() });
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
         }
     }
 
     function subscribeToRealtime() {
-        supabase.channel('qwenlia_sync').on('postgres_changes', { event: '*', schema: 'public', table: 'movimientos', filter: `user_id=eq.${USER_ID}` }, async payload => {
-            if ((payload.new?.priority || 0) >= DEVICE_PRIORITY || new Date(payload.new?.updated_at).getTime() > lastSyncTime) {
-                await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
-            }
-        }).subscribe();
+        try {
+            supabase.channel('qwenlia_sync')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'movimientos', filter: `user_id=eq.${USER_ID}` }, async payload => {
+                    if ((payload.new?.priority || 0) >= DEVICE_PRIORITY || new Date(payload.new?.updated_at).getTime() > lastSyncTime) {
+                        console.log('🔄 Actualización remota');
+                        await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
+                    }
+                })
+                .subscribe(status => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Realtime activo');
+                    } else {
+                        console.warn('⚠️ Realtime no disponible, usando polling cada 30s');
+                        setInterval(async () => {
+                            if (document.visibilityState === 'visible') {
+                                await loadFromCloud();
+                                if(active) renderLedger();
+                            }
+                        }, 30000);
+                    }
+                });
+        } catch (e) {
+            console.warn('⚠️ Error subscribiendo a Realtime:', e.message);
+        }
     }
 
     async function syncPendingQueue() {
-        if (pendingChanges.length === 0) return;
+        if (pendingChanges.length === 0 || !supabaseConnected) return;
         for (const item of pendingChanges) await pushToCloud(item.movimiento, item.account, item.action, item.isPriority);
         pendingChanges = [];
         await loadFromCloud(); renderAccounts(); renderSubAccounts(); if(active) renderLedger();
@@ -191,7 +225,7 @@
 
     async function migrateFromLocalStorage() {
         const oldData = JSON.parse(localStorage.getItem('clau_lia_v2_pro')) || JSON.parse(localStorage.getItem('qwenlia_data'));
-        if (!oldData) return;
+        if (!oldData || !supabaseConnected) return;
         console.log('🔄 Migrando...');
         for (const [acc, data] of Object.entries(oldData)) {
             for (const m of data.movimientos) {
@@ -258,11 +292,10 @@
         movs.sort((a,b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
         movs.forEach(m => {
             const tag = m.subcuenta ? `<span class="tag-sub">${m.subcuenta}</span>` : '';
-            body.innerHTML += `<tr><td style="color:#888; font-size:0.8rem">${m.fecha}</td><td style="font-weight:600">${tag}${m.concepto}</td><td style="text-align:right; color:${m.importe >= 0 ? 'var(--green)':'var(--red)'}; font-family:monospace">$${m.importe.toLocaleString(undefined, {minimumFractionDigits:2})}</td><td onclick="window.edit('${m.id}')" style="cursor:pointer">✏️</td></tr>`;
+            body.innerHTML += `<tr><td style="color:#888; font-size:0.8rem">${m.fecha}</td><td style="font-weight:600">${tag}${m.concepto}</td><td style="text-align:right; color:${m.importe >= 0 ? 'var(--green)':'var(--red)'}; font-family:monospace">$${m.importe.toLocaleString(undefined, {minimumFractionDigits:2})}</td><td><span onclick="window.edit('${m.id}')" style="cursor:pointer;margin-right:8px">✏️</span><span onclick="window.deleteMovement('${m.id}')" style="cursor:pointer;color:var(--red)">🗑️</span></td></tr>`;
         });
     }
 
-    // ✅ SMART CSV PARSER: Respeta comas dentro de comillas
     function parseCSVLine(text, separator) {
         const result = [];
         let current = '';
@@ -274,7 +307,7 @@
             else { current += char; }
         }
         result.push(current);
-        return result.map(val => val.trim().replace(/^"|"$/g, '')); // Limpia comillas sobrantes
+        return result.map(val => val.trim().replace(/^"|"$/g, ''));
     }
 
     window.importCSV = async function(e) {
@@ -291,8 +324,6 @@
             const separator = lines[0].includes(';') ? ';' : ',';
             const headers = parseCSVLine(lines[0], separator).map(h => h.toLowerCase());
             
-            console.log('📊 Headers detectados:', headers);
-            
             const iF = headers.findIndex(h => h.includes("date") || h.includes("fecha"));
             const iN = headers.findIndex(h => h.includes("note") || h.includes("concepto") || h.includes("descripcion"));
             const iInc = headers.findIndex(h => h.includes("income") || h.includes("ingreso") || h.includes("abono"));
@@ -304,10 +335,7 @@
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if(!line) continue;
-                
-                // Usamos el parser inteligente
                 const c = parseCSVLine(line, separator);
-                
                 if (!c[iF] || !c[iN]) { skipped++; continue; }
                 
                 let fechaRaw = c[iF];
@@ -322,9 +350,6 @@
                 let m = 0;
                 if(iInc !== -1 && iExp !== -1 && c[iInc] && c[iExp]) {
                     m = (parseFloat(c[iInc].replace(/[^0-9.-]/g, '')) || 0) - (parseFloat(c[iExp].replace(/[^0-9.-]/g, '')) || 0);
-                } else {
-                    // Lógica fallback para columnas únicas
-                    m = 0; 
                 }
                 
                 if(!isNaN(m) && m !== 0) {
@@ -334,7 +359,6 @@
                     count++;
                 } else { skipped++; }
             }
-            
             renderSubAccounts(); sync();
             alert(`✅ Importados: ${count}\n⏭️ Saltadas: ${skipped}`);
         };
@@ -342,11 +366,25 @@
     }
 
     window.save = async function() {
-        const f = document.getElementById('f-fecha').value, n = document.getElementById('f-nota').value, m = parseFloat(document.getElementById('f-monto').value), id = document.getElementById('edit-id').value;
+        if (!active) {
+            return alert("⚠️ Primero selecciona una categoría (arriba)");
+        }
+        if (!db[active]) {
+            db[active] = { movimientos: [] };
+        }
+        
+        const f = document.getElementById('f-fecha').value;
+        const n = document.getElementById('f-nota').value;
+        const m = parseFloat(document.getElementById('f-monto').value);
+        const id = document.getElementById('edit-id').value;
+        
         if(!f || !n || isNaN(m)) return alert("Datos incompletos");
-        const subVal = activeSub || (id ? db[active].movimientos.find(x => x.id === id).subcuenta : 'Manual');
+        
+        const subVal = activeSub || (id && db[active].movimientos.find(x => x.id === id) ? db[active].movimientos.find(x => x.id === id).subcuenta : 'Manual');
+
         if(id) {
             const i = db[active].movimientos.findIndex(x => x.id === id);
+            if (i === -1) return alert("Movimiento no encontrado");
             const updated = { id, fecha:f, concepto:n, importe:m, subcuenta: subVal };
             db[active].movimientos[i] = updated;
             await pushToCloud(updated, active, 'update', IS_IPHONE);
@@ -355,28 +393,86 @@
             db[active].movimientos.push(newMov);
             await pushToCloud(newMov, active, 'insert', IS_IPHONE);
         }
-        document.getElementById('f-nota').value = ''; document.getElementById('f-monto').value = ''; document.getElementById('edit-id').value = '';
+        
+        document.getElementById('f-nota').value = ''; 
+        document.getElementById('f-monto').value = ''; 
+        document.getElementById('edit-id').value = '';
         sync();
     }
 
-    window.addAccount = function() { const n = prompt("Nombre:"); if(n && !db[n]) { db[n] = { movimientos: [] }; active = n; activeSub = null; sync(); } }
-    window.deleteAccount = async function() { if(confirm("¿Eliminar?")) { await supabase.from('movimientos').delete().eq('user_id', USER_ID).eq('account', active); delete db[active]; active = null; activeSub = null; sync(); location.reload(); } }
-    window.edit = function(id) { const m = db[active].movimientos.find(x => x.id === id); document.getElementById('f-fecha').value = m.fecha; document.getElementById('f-nota').value = m.concepto; document.getElementById('f-monto').value = m.importe; document.getElementById('edit-id').value = m.id; window.scrollTo(0,0); }
+    window.addAccount = function() { 
+        const n = prompt("Nombre:"); 
+        if(n && !db[n]) { 
+            db[n] = { movimientos: [] }; 
+            active = n; 
+            activeSub = null; 
+            sync(); 
+        } 
+    }
+    
+    window.deleteAccount = async function() { 
+        if(confirm("¿Eliminar cuenta y todos sus movimientos?")) { 
+            if(supabaseConnected) {
+                await supabase.from('movimientos').delete().eq('user_id', USER_ID).eq('account', active);
+            }
+            delete db[active]; 
+            active = null; 
+            activeSub = null; 
+            sync(); 
+            location.reload(); 
+        } 
+    }
+
+    window.deleteMovement = async function(id) {
+        if (!confirm("¿Eliminar este movimiento?")) return;
+        
+        if (!active || !db[active]) return;
+        
+        const index = db[active].movimientos.findIndex(m => m.id === id);
+        if (index === -1) return;
+        
+        if (supabaseConnected) {
+            await supabase.from('movimientos').delete().eq('id', id);
+        }
+        
+        db[active].movimientos.splice(index, 1);
+        sync();
+        console.log('🗑️ Movimiento eliminado:', id);
+    }
+    
+    window.edit = function(id) {
+        if (!active || !db[active]) return;
+        const m = db[active].movimientos.find(x => x.id === id);
+        if (!m) return;
+        document.getElementById('f-fecha').value = m.fecha; 
+        document.getElementById('f-nota').value = m.concepto;
+        document.getElementById('f-monto').value = m.importe; 
+        document.getElementById('edit-id').value = m.id;
+        window.scrollTo(0,0);
+    }
+    
     window.toggleSort = function() { sortDesc = !sortDesc; renderLedger(); }
 
     window.renameAccount = async function(oldName) {
+        if (!db[oldName]) return;
         const newName = prompt("Nuevo nombre para la cuenta:", oldName);
         if (!newName || newName === oldName || db[newName]) return alert("Nombre inválido o ya existe.");
         db[newName] = db[oldName]; delete db[oldName];
-        await supabase.from('movimientos').update({ account: newName }).eq('user_id', USER_ID).eq('account', oldName);
+        if(supabaseConnected) {
+            await supabase.from('movimientos').update({ account: newName }).eq('user_id', USER_ID).eq('account', oldName);
+        }
         if (active === oldName) active = newName;
         activeSub = null; sync();
     }
+    
     window.renameSubaccount = async function(oldSub) {
+        if (!active || !db[active]) return;
         const newSub = prompt("Nuevo nombre para la subcuenta:", oldSub);
         if (!newSub || newSub === oldSub) return;
         db[active].movimientos.forEach(m => { if (m.subcuenta === oldSub) m.subcuenta = newSub; });
-        await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', USER_ID).eq('account', active).eq('subcuenta', oldSub);
+        if(supabaseConnected) {
+            await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', USER_ID).eq('account', active).eq('subcuenta', oldSub);
+        }
         renderSubAccounts(); renderLedger();
         localStorage.setItem('qwenlia_data', JSON.stringify(db));
     }
