@@ -185,25 +185,29 @@
     window.showSignup = () => { document.getElementById('login-form').style.display = 'none'; document.getElementById('signup-form').style.display = 'block'; document.getElementById('auth-msg').textContent = ''; }
     window.showLogin = () => { document.getElementById('login-form').style.display = 'block'; document.getElementById('signup-form').style.display = 'none'; document.getElementById('auth-msg').textContent = ''; }
 
-    window.login = async () => {
-        const email = document.getElementById('auth-email').value.trim();
-        const password = document.getElementById('auth-password').value;
-        if(!email || !password) return showAuthMsg('Completa ambos campos');
-        const {  { session }, error } = await supabase.auth.signInWithPassword({ email, password });
-        if(error) return showAuthMsg(error.message);
-        handleAuthSuccess(session.user);
-    }
+   window.login = async () => {
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    if(!email || !password) return showAuthMsg('Completa ambos campos');
+    
+    // ✅ CORREGIDO: data: { session }
+    const { data: { session }, error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) return showAuthMsg(error.message);
+    handleAuthSuccess(session.user);
+}
 
-    window.signup = async () => {
-        const email = document.getElementById('signup-email').value.trim();
-        const password = document.getElementById('signup-password').value;
-        if(!email || password.length < 6) return showAuthMsg('Contraseña mínima 6 caracteres');
-        const {  { session }, error } = await supabase.auth.signUp({ email, password });
-        if(error) return showAuthMsg(error.message);
-        showAuthMsg('✅ Cuenta creada. Revisa tu correo para confirmar.');
-        setTimeout(() => showLogin(), 2000);
-    }
-
+window.signup = async () => {
+    const email = document.getElementById('signup-email').value.trim();
+    const password = document.getElementById('signup-password').value;
+    if(!email || password.length < 6) return showAuthMsg('Contraseña mínima 6 caracteres');
+    
+    // ✅ CORREGIDO: data: { session }
+    const { data: { session }, error } = await supabase.auth.signUp({ email, password });
+    if(error) return showAuthMsg(error.message);
+    showAuthMsg('✅ Cuenta creada. Revisa tu correo para confirmar.');
+    setTimeout(() => showLogin(), 2000);
+}
+    
     window.logout = async () => {
         await supabase.auth.signOut();
         currentUser = null; db = {}; active = null;
