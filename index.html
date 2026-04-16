@@ -226,7 +226,7 @@
     async function checkSession() {
       try {
         // ✅ CORRECCIÓN 3: Get Session
-        const {  { session }, error } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (session && !error) {
           handleAuthSuccess(session);
         } else {
