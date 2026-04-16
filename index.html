@@ -169,7 +169,7 @@
     
     // Corrección de sintaxis solicitada:
     // ❌ Incorrecto: const { { session }, error } = await supabase.auth.getSession()
-    // ✅ Correcto:   const {  { session }, error } = await supabase.auth.getSession()
+    // ✅ Correcto:   const { data: { session }, error } = await supabase.auth.getSession(),
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
@@ -191,7 +191,7 @@
       authMsg.textContent = '';
       try {
         // ✅ CORRECCIÓN 1: Login
-        const { data, error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({...});
           email: authEmail.value.trim(),
           password: authPass.value
         });
@@ -206,7 +206,7 @@
       authMsg.textContent = '';
       try {
         // ✅ CORRECCIÓN 2: Signup
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({...});
           email: authEmail.value.trim(),
           password: authPass.value
         });
@@ -224,9 +224,9 @@
     });
 
     async function checkSession() {
-      try {
-        // ✅ CORRECCIÓN 3: Get Session
-        const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session }, error } = await supabase.auth.getSession();  // ✅ BIEN
+  // ...
+}
         if (session && !error) {
           handleAuthSuccess(session);
         } else {
