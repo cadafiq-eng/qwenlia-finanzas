@@ -1,1 +1,618 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>QwenLIA Finanzas</title><link rel="manifest" href="/qwenlia-finanzas/manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#e8a020"><style>:root{--bg:#f4f4f9;--text:#333;--accent:#e8a020;--card:#fff;--line:#ddd;--green:#27ae60;--red:#c0392b}body.dark{--bg:#0d0d1a;--text:#e8e4da;--card:#1a1a2e;--line:#2e2e42;--green:#4ade80;--red:#f87171}body{font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:15px;transition:.3s}.container{max-width:900px;margin:0 auto}.nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.theme-btn{cursor:pointer;font-size:1.2rem;background:none;border:none;color:var(--accent)}.account-bar{display:flex;gap:8px;overflow-x:auto;padding:10px 0;margin-bottom:5px}.sub-bar{display:none;gap:6px;overflow-x:auto;padding-bottom:10px;border-bottom:1px solid var(--line);margin-bottom:15px}.sub-bar.visible{display:flex}.btn-toggle-sub{background:var(--card);border:1px solid var(--line);padding:6px 12px;border-radius:20px;font-size:.85rem;cursor:pointer;color:var(--text);margin-bottom:10px;display:inline-flex;align-items:center;gap:6px}.acct-btn{padding:8px 14px;border:1px solid var(--line);border-radius:20px;background:var(--card);color:var(--text);cursor:pointer;white-space:nowrap;font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:6px}.acct-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}.rename-btn{font-size:.8rem;opacity:.7;margin-left:4px;cursor:pointer}.sub-btn{padding:6px 10px;border:1px solid var(--line);border-radius:15px;background:var(--card);color:var(--text);cursor:pointer;white-space:nowrap;font-size:.8rem;opacity:.8;display:flex;align-items:center;gap:4px}.sub-btn.active{background:var(--text);color:var(--bg);border-color:var(--text);opacity:1}.summary{background:var(--card);padding:15px;border-radius:12px;margin-bottom:15px;text-align:center;border:1px solid var(--line)}.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}.kpi-val{font-size:1rem;font-weight:bold;font-family:monospace}.form-box{background:var(--card);padding:15px;border-radius:12px;border:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}input{flex:1;min-width:130px;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text)}.btn{padding:10px 18px;border:none;border-radius:6px;cursor:pointer;font-weight:bold}.btn-save{background:var(--green);color:#fff;flex:2}.btn-import{background:var(--accent);color:#fff;text-align:center;cursor:pointer;flex:1}.btn-export{background:#3498db;color:#fff;flex:1}.table-wrap{background:var(--card);border-radius:12px;overflow-x:auto;border:1px solid var(--line)}table{width:100%;border-collapse:collapse;min-width:600px}th,td{padding:12px;text-align:left;border-bottom:1px solid var(--line)}th{background:rgba(0,0,0,.05);font-size:.75rem;text-transform:uppercase;color:#888;cursor:pointer}.tag-sub{font-size:.7rem;background:var(--accent);color:#000;padding:2px 6px;border-radius:4px;margin-right:5px;font-weight:bold}@media(max-width:600px){.sub-btn{padding:5px 8px;font-size:.75rem}.sub-bar::-webkit-scrollbar{display:none}.btn-toggle-sub{font-size:.8rem;padding:5px 10px}}#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;text-align:center}#app-screen{display:none}.auth-card{background:var(--card);padding:30px;border-radius:12px;border:1px solid var(--line);max-width:400px;width:100%}.auth-title{font-size:1.5rem;margin-bottom:20px;color:var(--accent)}.auth-input{width:100%;margin-bottom:15px}.auth-btn{width:100%;margin-bottom:10px}.auth-btn.secondary{background:var(--line);color:var(--text)}.logout-btn{background:var(--red);color:#fff;font-size:.8rem;padding:5px 10px}</style></head><body class="dark"><div id="auth-screen"><div class="auth-card"><h2 class="auth-title">Qwen<span style="color:var(--accent)">LIA</span></h2><p style="margin-bottom:20px;color:#888">Control financiero inteligente</p><div id="login-form"><input type="email" id="auth-email" class="auth-input" placeholder="Correo electrónico"><input type="password" id="auth-password" class="auth-input" placeholder="Contraseña"><button class="btn auth-btn" onclick="login()">Iniciar Sesión</button><button class="btn auth-btn secondary" onclick="showSignup()">Crear Cuenta</button></div><div id="signup-form" style="display:none"><input type="email" id="signup-email" class="auth-input" placeholder="Correo electrónico"><input type="password" id="signup-password" class="auth-input" placeholder="Contraseña (mín. 6 caracteres)"><button class="btn auth-btn" onclick="signup()">Registrarse</button><button class="btn auth-btn secondary" onclick="showLogin()">Ya tengo cuenta</button></div><p id="auth-msg" style="color:var(--red);margin-top:10px;font-size:.9rem"></p></div></div><div id="app-screen" class="container"><div class="nav"><h2 style="margin:0">Qwen<span style="color:var(--accent)">LIA</span></h2><div style="display:flex;gap:10px;align-items:center"><span id="user-email" style="font-size:.8rem;color:#888"></span><button class="logout-btn" onclick="logout()">Cerrar Sesión</button><button class="theme-btn" onclick="toggleTheme()">🌓</button></div></div><div class="account-bar" id="account-bar"></div><button class="btn-toggle-sub" onclick="toggleSubBar()">📂 Subcuentas <span id="sub-arrow">▼</span></button><div class="sub-bar" id="sub-bar"></div><div style="margin-bottom:15px;display:flex;gap:10px"><button class="btn" style="background:var(--line);color:var(--text)" onclick="addAccount()">+ Nueva Categoría</button><button class="btn" style="background:#fcc;color:red;display:none" id="btn-del" onclick="deleteAccount()">Eliminar Cuenta</button></div><div class="summary" id="summary-view" style="display:none"><small style="color:#888" id="saldo-label">SALDO TOTAL EN CUENTA</small><br><span id="saldo-total" style="font-size:2rem;font-weight:bold">$0.00</span><div class="kpi-grid"><div><small>INGRESOS</small><br><span id="kpi-ing" class="kpi-val" style="color:var(--green)">$0</span></div><div><small>EGRESOS</small><br><span id="kpi-egr" class="kpi-val" style="color:var(--red)">$0</span></div><div><small>NETO</small><br><span id="kpi-neto" class="kpi-val"></span></div></div></div><div class="form-box"><input type="date" id="f-fecha"><input type="text" id="f-nota" placeholder="Concepto"><input type="number" id="f-monto" step="0.01" placeholder="Importe"><input type="hidden" id="edit-id"><button class="btn btn-save" onclick="save()">Guardar</button><label class="btn btn-import">📂 CSV <input type="file" id="csv" style="display:none" onchange="importCSV(event)"></label><button class="btn btn-export" id="btn-export" style="display:none" onclick="exportToExcel()">📊 Excel</button></div><div class="table-wrap" id="table-section" style="display:none"><table><thead><tr><th onclick="toggleSort()">Fecha ↕</th><th>Subcuenta / Concepto</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody id="ledger"></tbody></table></div></div><script type="module">const SUPABASE_URL='TU_SUPABASE_URL_AQUI';const SUPABASE_KEY='TU_SUPABASE_ANON_KEY_AQUI';const IS_IPHONE=/iPhone|iPad|iPod/.test(navigator.userAgent);const DEVICE_PRIORITY=IS_IPHONE?10:1;import{createClient}from'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';const supabase=createClient(SUPABASE_URL,SUPABASE_KEY);let db={},active=null,activeSub=null,sortDesc=true,lastSyncTime=0,pendingChanges=[],supabaseConnected=false,currentUser=null;window.showSignup=()=>{document.getElementById('login-form').style.display='none';document.getElementById('signup-form').style.display='block';document.getElementById('auth-msg').textContent='';};window.showLogin=()=>{document.getElementById('login-form').style.display='block';document.getElementById('signup-form').style.display='none';document.getElementById('auth-msg').textContent='';};window.login=async()=>{const email=document.getElementById('auth-email').value.trim(),password=document.getElementById('auth-password').value;if(!email||!password)return showAuthMsg('Completa ambos campos');const{data:{session},error}=await supabase.auth.signInWithPassword({email,password});if(error)return showAuthMsg(error.message);handleAuthSuccess(session.user);};window.signup=async()=>{const email=document.getElementById('signup-email').value.trim(),password=document.getElementById('signup-password').value;if(!email||password.length<6)return showAuthMsg('Contraseña mínima 6 caracteres');const{data:{session},error}=await supabase.auth.signUp({email,password});if(error)return showAuthMsg(error.message);showAuthMsg('✅ Cuenta creada.');setTimeout(()=>showLogin(),2000);};window.logout=async()=>{await supabase.auth.signOut();currentUser=null;db={};active=null;document.getElementById('auth-screen').style.display='flex';document.getElementById('app-screen').style.display='none';};function showAuthMsg(msg){document.getElementById('auth-msg').textContent=msg;}async function handleAuthSuccess(user){currentUser=user;document.getElementById('user-email').textContent=user.email;document.getElementById('auth-screen').style.display='none';document.getElementById('app-screen').style.display='block';supabaseConnected=await loadFromCloud();if(supabaseConnected)subscribeToRealtime();else console.warn('⚠️ Offline');if(supabaseConnected&&Object.keys(db).length===0)await migrateFromLocalStorage();renderAccounts();renderSubAccounts();if(active)renderLedger();window.addEventListener('online',()=>syncPendingQueue());}supabase.auth.getSession().then(({data:{session}})=>{if(session?.user)handleAuthSuccess(session.user);});supabase.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_IN'&&session?.user)handleAuthSuccess(session.user);if(event==='SIGNED_OUT')logout();});async function loadFromCloud(){try{if(!currentUser)return false;const{data,error}=await supabase.from('movimientos').select('*').eq('user_id',currentUser.id).order('updated_at',{ascending:false});if(error){console.warn('⚠️ Error:',error.message);return false;}db={};data.forEach(row=>{if(!db[row.account])db[row.account]={movimientos:[]};db[row.account].movimientos.push({id:row.id,fecha:row.fecha,concepto:row.concepto,importe:row.importe,subcuenta:row.subcuenta,_ts:row.updated_at});});lastSyncTime=Date.now();console.log('✅ Conectado');return true;}catch(e){db=JSON.parse(localStorage.getItem('qwenlia_data'))||{};return false;}}async function pushToCloud(movimiento,account,action,isPriority=false){if(!supabaseConnected||!currentUser){localStorage.setItem('qwenlia_data',JSON.stringify(db));return;}const payload={user_id:currentUser.id,account,fecha:movimiento.fecha,concepto:movimiento.concepto,importe:movimiento.importe,subcuenta:movimiento.subcuenta||null,updated_at:new Date().toISOString(),priority:isPriority?DEVICE_PRIORITY:1,device:IS_IPHONE?'iphone':'desktop'};try{if(action==='insert'){const{data,error}=await supabase.from('movimientos').insert(payload).select();if(error)throw error;movimiento.id=data[0].id;}else if(action==='update')await supabase.from('movimientos').update(payload).eq('id',movimiento.id);else if(action==='delete')await supabase.from('movimientos').delete().eq('id',movimiento.id);localStorage.setItem('qwenlia_data',JSON.stringify(db));}catch(e){console.warn('⚠️ Sync error:',e.message);pendingChanges.push({movimiento,account,action,isPriority,ts:Date.now()});localStorage.setItem('qwenlia_data',JSON.stringify(db));}}function subscribeToRealtime(){try{supabase.channel('qwenlia_sync').on('postgres_changes',{event:'*',schema:'public',table:'movimientos',filter:`user_id=eq.${currentUser.id}`},async payload=>{if((payload.new?.priority||0)>=DEVICE_PRIORITY||new Date(payload.new?.updated_at).getTime()>lastSyncTime){await loadFromCloud();renderAccounts();renderSubAccounts();if(active)renderLedger();}}).subscribe(status=>{if(status!=='SUBSCRIBED'){console.warn('⚠️ Fallback polling');setInterval(async()=>{if(document.visibilityState==='visible'){await loadFromCloud();if(active)renderLedger();}},30000);}});}catch(e){console.warn('⚠️ Error subscribe:',e.message);}}async function syncPendingQueue(){if(pendingChanges.length===0||!supabaseConnected)return;for(const item of pendingChanges)await pushToCloud(item.movimiento,item.account,item.action,item.isPriority);pendingChanges=[];await loadFromCloud();renderAccounts();renderSubAccounts();if(active)renderLedger();}async function migrateFromLocalStorage(){const oldData=JSON.parse(localStorage.getItem('clau_lia_v2_pro'))||JSON.parse(localStorage.getItem('qwenlia_data'));if(!oldData||!supabaseConnected)return;console.log('🔄 Migrando...');for(const[acc,data]of Object.entries(oldData)){for(const m of data.movimientos){await supabase.from('movimientos').insert({user_id:currentUser.id,account:acc,fecha:m.fecha,concepto:m.concepto,importe:m.importe,subcuenta:m.subcuenta,updated_at:new Date().toISOString(),priority:1,device:'migration'});}}await loadFromCloud();renderAccounts();renderSubAccounts();if(active)renderLedger();}window.toggleTheme=()=>document.body.classList.toggle('dark');window.sync=()=>{localStorage.setItem('qwenlia_data',JSON.stringify(db));document.getElementById('btn-export').style.display=active?'inline-block':'none';renderAccounts();renderSubAccounts();if(active)renderLedger();};window.toggleSubBar=function(){const bar=document.getElementById('sub-bar'),arrow=document.getElementById('sub-arrow');bar.classList.toggle('visible');arrow.textContent=bar.classList.contains('visible')?'▲':'▼';};function renderAccounts(){const bar=document.getElementById('account-bar');bar.innerHTML='';Object.keys(db).forEach(name=>{const saldo=db[name].movimientos.reduce((a,b)=>a+Number(b.importe),0);const btn=document.createElement('button');btn.className=`acct-btn ${active===name?'active':''}`;btn.innerHTML=`${name} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation();renameAccount('${name}')">✏️</span>`;btn.onclick=()=>{active=name;activeSub=null;sync();};bar.appendChild(btn);});}function renderSubAccounts(){const bar=document.getElementById('sub-bar');bar.innerHTML='';if(!active||!db[active]){bar.classList.remove('visible');return;}const movs=db[active].movimientos,subs=[...new Set(movs.map(m=>m.subcuenta).filter(Boolean))];if(subs.length===0){bar.classList.remove('visible');return;}bar.classList.add('visible');const allBtn=document.createElement('button');allBtn.className=`sub-btn ${activeSub===null?'active':''}`;allBtn.innerText='Todos';allBtn.onclick=()=>{activeSub=null;renderSubAccounts();renderLedger();};bar.appendChild(allBtn);subs.forEach(sub=>{const saldo=movs.filter(m=>m.subcuenta===sub).reduce((a,b)=>a+Number(b.importe),0);const btn=document.createElement('button');btn.className=`sub-btn ${activeSub===sub?'active':''}`;btn.innerHTML=`${sub} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation();renameSubaccount('${sub}')">✏️</span>`;btn.onclick=()=>{activeSub=sub;renderSubAccounts();renderLedger();};bar.appendChild(btn);});});}function renderLedger(){document.getElementById('summary-view').style.display='block';document.getElementById('table-section').style.display='block';document.getElementById('btn-del').style.display='inline-block';const body=document.getElementById('ledger');body.innerHTML='';if(!db[active])return;let movs=[...db[active].movimientos];if(activeSub){movs=movs.filter(m=>m.subcuenta===activeSub);document.getElementById('saldo-label').innerText=`SALDO SUBCUENTA: ${activeSub}`;}else document.getElementById('saldo-label').innerText='SALDO TOTAL EN CUENTA';let ing=0,egr=0;movs.forEach(m=>{if(m.importe>0)ing+=m.importe;else egr+=m.importe;});document.getElementById('saldo-total').innerText=`$${(ing+egr).toLocaleString(undefined,{minimumFractionDigits:2})}`;document.getElementById('kpi-ing').innerText=`+$${ing.toLocaleString()}`;document.getElementById('kpi-egr').innerText={`-$${Math.abs(egr).toLocaleString()}`;document.getElementById('kpi-neto').innerText=`$${(ing+egr).toLocaleString()}`;movs.sort((a,b)=>sortDesc?new Date(b.fecha)-new Date(a.fecha):new Date(a.fecha)-new Date(b.fecha));movs.forEach(m=>{const tag=m.subcuenta?`<span class="tag-sub">${m.subcuenta}</span>`:'';body.innerHTML+=`<tr><td style="color:#888;font-size:.8rem">${m.fecha}</td><td style="font-weight:600">${tag}${m.concepto}</td><td style="text-align:right;color:${m.importe>=0?'var(--green)':'var(--red)'};font-family:monospace">$${m.importe.toLocaleString(undefined,{minimumFractionDigits:2})}</td><td><span onclick="window.edit('${m.id}')" style="cursor:pointer;margin-right:8px">✏️</span><span onclick="window.deleteMovement('${m.id}')" style="cursor:pointer;color:var(--red)">🗑️</span></td></tr>`;});}function parseCSVLine(text,separator){const result=[];let current='',inQuotes=false;for(let i=0;i<text.length;i++){const char=text[i];if(char==='"'){inQuotes=!inQuotes;}else if(char===separator&&!inQuotes){result.push(current);current='';}else{current+=char;}}result.push(current);return result.map(val=>val.trim().replace(/^"|"$/g,''));}window.importCSV=async function(e){if(!active)return alert("Selecciona categoría");const file=e.target.files[0],subName=file.name.replace('.csv','').substring(0,8),reader=new FileReader();reader.onload=async(ev)=>{const content=ev.target.result.replace(/^\ufeff/,"").replace(/\r/g,""),lines=content.split("\n").filter(l=>l.trim()!=="");if(lines.length<2)return;const separator=lines[0].includes(';')?';':',',headers=parseCSVLine(lines[0],separator).map(h=>h.toLowerCase()),iF=headers.findIndex(h=>h.includes("date")||h.includes("fecha")),iN=headers.findIndex(h=>h.includes("note")||h.includes("concepto")||h.includes("descripcion")),iInc=headers.findIndex(h=>h.includes("income")||h.includes("ingreso")||h.includes("abono")),iExp=headers.findIndex(h=>h.includes("expense")||h.includes("egreso")||h.includes("retiro"));let count=0,skipped=0;for(let i=1;i<lines.length;i++){const line=lines[i].trim();if(!line)continue;const c=parseCSVLine(line,separator);if(!c[iF]||!c[iN]){skipped++;continue;}let fechaRaw=c[iF],fecha=fechaRaw;if(fechaRaw.includes('/')){const parts=fechaRaw.split('/');if(parts.length===3)fecha=`${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;}else if(!fechaRaw.includes('-')&&fechaRaw.length===8){fecha=`${fechaRaw.substring(0,4)}-${fechaRaw.substring(4,6)}-${fechaRaw.substring(6,8)}`;}let m=0;if(iInc!==-1&&iExp!==-1&&c[iInc]&&c[iExp])m=(parseFloat(c[iInc].replace(/[^0-9.-]/g,''))||0)-(parseFloat(c[iExp].replace(/[^0-9.-]/g,''))||0);if(!isNaN(m)&&m!==0){db[active].movimientos.push({id:'temp_'+Date.now()+'_'+i,fecha,concepto:c[iN]||"Carga CSV",importe:m,subcuenta:subName});await pushToCloud(db[active].movimientos[db[active].movimientos.length-1],active,'insert',IS_IPHONE);count++;}else{skipped++;}}renderSubAccounts();sync();alert(`✅ Importados: ${count}\n⏭️ Saltadas: ${skipped}`);};reader.readAsText(file);};window.save=async function(){if(!active)return alert("⚠️ Selecciona categoría");if(!db[active])db[active]={movimientos:[]};const f=document.getElementById('f-fecha').value,n=document.getElementById('f-nota').value,m=parseFloat(document.getElementById('f-monto').value),id=document.getElementById('edit-id').value;if(!f||!n||isNaN(m))return alert("Datos incompletos");const subVal=activeSub||(id&&db[active].movimientos.find(x=>x.id===id)?db[active].movimientos.find(x=>x.id===id).subcuenta:'Manual');if(id){const i=db[active].movimientos.findIndex(x=>x.id===id);if(i===-1)return alert("No encontrado");const updated={id,fecha:f,concepto:n,importe:m,subcuenta:subVal};db[active].movimientos[i]=updated;await pushToCloud(updated,active,'update',IS_IPHONE);}else{const newMov={id:'temp_'+Date.now(),fecha:f,concepto:n,importe:m,subcuenta:subVal};db[active].movimientos.push(newMov);await pushToCloud(newMov,active,'insert',IS_IPHONE);}document.getElementById('f-nota').value='';document.getElementById('f-monto').value='';document.getElementById('edit-id').value='';sync();};window.addAccount=function(){const n=prompt("Nombre:");if(n&&!db[n]){db[n]={movimientos:[]};active=n;activeSub=null;sync();}};window.deleteAccount=async function(){if(confirm("¿Eliminar cuenta?")){if(supabaseConnected&&currentUser)await supabase.from('movimientos').delete().eq('user_id',currentUser.id).eq('account',active);delete db[active];active=null;activeSub=null;sync();location.reload();}};window.deleteMovement=async function(id){if(!confirm("¿Eliminar movimiento?"))return;if(!active||!db[active])return;const index=db[active].movimientos.findIndex(m=>m.id===id);if(index===-1)return;if(supabaseConnected&&currentUser)await supabase.from('movimientos').delete().eq('id',id);db[active].movimientos.splice(index,1);sync();};window.edit=function(id){if(!active||!db[active])return;const m=db[active].movimientos.find(x=>x.id===id);if(!m)return;document.getElementById('f-fecha').value=m.fecha;document.getElementById('f-nota').value=m.concepto;document.getElementById('f-monto').value=m.importe;document.getElementById('edit-id').value=m.id;window.scrollTo(0,0);};window.toggleSort=function(){sortDesc=!sortDesc;renderLedger();};window.renameAccount=async function(oldName){if(!db[oldName])return;const newName=prompt("Nuevo nombre:",oldName);if(!newName||newName===oldName||db[newName])return alert("Inválido");db[newName]=db[oldName];delete db[oldName];if(supabaseConnected&&currentUser)await supabase.from('movimientos').update({account:newName}).eq('user_id',currentUser.id).eq('account',oldName);if(active===oldName)active=newName;activeSub=null;sync();};window.renameSubaccount=async function(oldSub){if(!active||!db[active])return;const newSub=prompt("Nuevo nombre:",oldSub);if(!newSub||newSub===oldSub)return;db[active].movimientos.forEach(m=>{if(m.subcuenta===oldSub)m.subcuenta=newSub;});if(supabaseConnected&&currentUser)await supabase.from('movimientos').update({subcuenta:newSub}).eq('user_id',currentUser.id).eq('account',active).eq('subcuenta',oldSub);renderSubAccounts();renderLedger();localStorage.setItem('qwenlia_data',JSON.stringify(db));};window.exportToExcel=function(){if(!active||!db[active])return alert("Selecciona cuenta");let data=db[active].movimientos;if(activeSub)data=data.filter(m=>m.subcuenta===activeSub);if(data.length===0)return alert("Sin datos");data.sort((a,b)=>sortDesc?new Date(b.fecha)-new Date(a.fecha):new Date(a.fecha)-new Date(b.fecha));let csv="Fecha;Concepto;Importe;Subcuenta\n";data.forEach(m=>{const concepto=`"${(m.concepto||'').replace(/"/g,'""')}"`,subcuenta=`"${(m.subcuenta||'').replace(/"/g,'""')}"`;csv+=`${m.fecha};${concepto};${m.importe};${subcuenta}\n`;});const total=data.reduce((s,m)=>s+m.importe,0),ing=data.filter(m=>m.importe>0).reduce((s,m)=>s+m.importe,0),egr=Math.abs(data.filter(m=>m.importe<0).reduce((s,m)=>s+m.importe,0));csv+=`\n;;INGRESOS;${ing}\n;;EGRESOS;${egr}\n;;TOTAL;${total}\n`;const blob=new Blob(["\uFEFF"+csv],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`QwenLIA_${active}${activeSub?'_'+activeSub:''}_${new Date().toISOString().split('T')[0]}.csv`;document.body.appendChild(link);link.click();document.body.removeChild(link);URL.revokeObjectURL(url);};</script></body></html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QwenLIA Finanzas</title>
+  <!-- Supabase JS v2 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --surface: #1a1d24;
+      --surface-hover: #252830;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --radius: 10px;
+      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;
+    }
+    .logo { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+    .logo span { color: var(--text-muted); font-weight: 400; font-size: 0.9rem; }
+    .auth-box, .dashboard { background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .hidden { display: none !important; }
+    input, select, button {
+      width: 100%; padding: 12px; margin-bottom: 10px;
+      background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; font-size: 14px; transition: all 0.2s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--primary); }
+    button { cursor: pointer; font-weight: 600; background: var(--primary); color: white; border: none; }
+    button:hover { background: var(--primary-hover); }
+    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    button.secondary:hover { background: var(--surface-hover); }
+    button.danger { background: var(--danger); }
+    button.danger:hover { background: #dc2626; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .summary {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px; margin: 20px 0;
+    }
+    .card { background: var(--surface); padding: 15px; border-radius: var(--radius); text-align: center; }
+    .card h3 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
+    .card p { font-size: 1.5rem; font-weight: 700; }
+    .card.income p { color: var(--success); }
+    .card.expense p { color: var(--danger); }
+    .card.net p { color: var(--primary); }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+    .controls button, .controls input, .controls select { width: auto; margin: 0; flex: 1; min-width: 120px; }
+    .table-wrapper { overflow-x: auto; margin-top: 10px; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--surface-hover); color: var(--text-muted); font-weight: 600; cursor: pointer; }
+    tr:hover { background: var(--surface-hover); }
+    .actions { display: flex; gap: 8px; }
+    .btn-icon { padding: 6px 8px; font-size: 14px; width: auto; }
+    .subaccount-group { margin-bottom: 15px; }
+    .group-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 15px; background: var(--surface-hover); cursor: pointer;
+      border-radius: var(--radius) var(--radius) 0 0; border: 1px solid var(--border); border-bottom: none;
+    }
+    .group-content { border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); }
+    .group-content.collapsed { display: none; }
+    .status { font-size: 0.8rem; color: var(--text-muted); text-align: right; margin-bottom: 10px; }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px; background: var(--success);
+      color: white; padding: 12px 20px; border-radius: var(--radius);
+      box-shadow: var(--shadow); transform: translateY(100px); transition: transform 0.3s;
+    }
+    .toast.show { transform: translateY(0); }
+    @media (max-width: 768px) {
+      .grid-2, .controls { grid-template-columns: 1fr; }
+      .controls button { width: 100%; }
+      .summary { grid-template-columns: 1fr; }
+      table { font-size: 0.9rem; }
+      th, td { padding: 10px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">QwenLIA <span>Finanzas</span></div>
+      <div id="user-info" class="hidden">
+        <span id="user-email" style="margin-right: 10px; color: var(--text-muted);"></span>
+        <button id="btn-logout" class="secondary btn-icon">Cerrar Sesión 🌗</button>
+      </div>
+    </header>
+
+    <!-- Auth Section -->
+    <div id="auth-section" class="auth-box">
+      <h2 style="margin-bottom: 15px; text-align: center;">Control financiero inteligente</h2>
+      <form id="auth-form">
+        <input type="email" id="auth-email" placeholder="Correo electrónico" required>
+        <input type="password" id="auth-password" placeholder="Contraseña" required minlength="6">
+        <div class="grid-2">
+          <button type="submit" id="btn-login">Iniciar Sesión</button>
+          <button type="button" id="btn-signup" class="secondary">Crear Cuenta</button>
+        </div>
+        <p id="auth-msg" style="text-align: center; margin-top: 10px; font-size: 0.9rem; color: var(--warning);"></p>
+      </form>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboard-section" class="dashboard hidden">
+      <div class="status" id="sync-status">🔄 Sincronizando...</div>
+      
+      <div class="summary">
+        <div class="card"><h3>SALDO TOTAL</h3><p id="saldo-total">$0.00</p></div>
+        <div class="card income"><h3>INGRESOS</h3><p id="total-ingresos">$0.00</p></div>
+        <div class="card expense"><h3>EGRESOS</h3><p id="total-egresos">$0.00</p></div>
+        <div class="card net"><h3>NETO</h3><p id="neto">$0.00</p></div>
+      </div>
+
+      <form id="movement-form" style="margin-bottom: 20px;">
+        <div class="grid-2">
+          <input type="date" id="mv-fecha" required>
+          <input type="text" id="mv-subcuenta" placeholder="Subcuenta (ej. Nómina)" required>
+        </div>
+        <div class="grid-2">
+          <input type="text" id="mv-concepto" placeholder="Concepto" required>
+          <input type="number" id="mv-monto" step="0.01" placeholder="Monto" required>
+        </div>
+        <select id="mv-tipo" required>
+          <option value="ingreso">📈 Ingreso</option>
+          <option value="egreso">📉 Egreso</option>
+        </select>
+        <button type="submit" id="btn-save-mv">💾 Guardar Movimiento</button>
+        <button type="button" id="btn-cancel-edit" class="secondary hidden" style="margin-top: -10px; margin-bottom: 10px;">❌ Cancelar Edición</button>
+      </form>
+
+      <div class="controls">
+        <input type="file" id="csv-import" accept=".csv" style="display: none;">
+        <button id="btn-import" class="secondary">📂 Importar CSV</button>
+        <button id="btn-export" class="secondary">📊 Exportar Excel</button>
+        <button id="btn-sync" class="secondary">🔄 Forzar Sync</button>
+      </div>
+
+      <div id="movements-container"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Operación exitosa</div>
+
+  <script>
+    // ==========================================
+    // CONFIGURACIÓN & INICIALIZACIÓN
+    // ==========================================
+    const SUPABASE_URL = 'TU_SUPABASE_URL_AQUI';
+    const SUPABASE_KEY = 'TU_SUPABASE_ANON_KEY_AQUI';
+    
+    // Corrección de sintaxis solicitada:
+    // ❌ Incorrecto: const { { session }, error } = await supabase.auth.getSession()
+    // ✅ Correcto:   const {  { session }, error } = await supabase.auth.getSession()
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let currentUser = null;
+    let movimientos = [];
+    let editingId = null;
+    let syncQueue = [];
+    let isOnline = navigator.onLine;
+
+    // ==========================================
+    // AUTH MODULE
+    // ==========================================
+    const authForm = document.getElementById('auth-form');
+    const authEmail = document.getElementById('auth-email');
+    const authPass = document.getElementById('auth-password');
+    const authMsg = document.getElementById('auth-msg');
+
+    document.getElementById('btn-login').addEventListener('click', async (e) => {
+      e.preventDefault();
+      authMsg.textContent = '';
+      try {
+        // ✅ CORRECCIÓN 1: Login
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authEmail.value.trim(),
+          password: authPass.value
+        });
+        if (error) throw error;
+        handleAuthSuccess(data.session);
+      } catch (err) {
+        authMsg.textContent = '❌ ' + err.message;
+      }
+    });
+
+    document.getElementById('btn-signup').addEventListener('click', async () => {
+      authMsg.textContent = '';
+      try {
+        // ✅ CORRECCIÓN 2: Signup
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail.value.trim(),
+          password: authPass.value
+        });
+        if (error) throw error;
+        if (data?.user) authMsg.textContent = '✅ Cuenta creada. Revisa tu correo para confirmar.';
+        if (data?.session) handleAuthSuccess(data.session);
+      } catch (err) {
+        authMsg.textContent = '❌ ' + err.message;
+      }
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      await supabase.auth.signOut();
+      window.location.reload();
+    });
+
+    async function checkSession() {
+      try {
+        // ✅ CORRECCIÓN 3: Get Session
+        const {  { session }, error } = await supabase.auth.getSession();
+        if (session && !error) {
+          handleAuthSuccess(session);
+        } else {
+          showAuth();
+        }
+      } catch (err) {
+        showAuth();
+      }
+    }
+
+    function handleAuthSuccess(session) {
+      currentUser = session.user;
+      document.getElementById('auth-section').classList.add('hidden');
+      document.getElementById('dashboard-section').classList.remove('hidden');
+      document.getElementById('user-info').classList.remove('hidden');
+      document.getElementById('user-email').textContent = currentUser.email;
+      loadMovements();
+    }
+
+    function showAuth() {
+      document.getElementById('auth-section').classList.remove('hidden');
+      document.getElementById('dashboard-section').classList.add('hidden');
+      document.getElementById('user-info').classList.add('hidden');
+    }
+
+    // ==========================================
+    // STATE & OFFLINE FALLBACK
+    // ==========================================
+    window.addEventListener('online', () => { isOnline = true; syncQueueToSupabase(); });
+    window.addEventListener('offline', () => { isOnline = false; updateSyncStatus('📴 Modo Offline'); });
+
+    function updateSyncStatus(msg) {
+      document.getElementById('sync-status').textContent = msg;
+    }
+
+    function saveToLocal() {
+      localStorage.setItem('qwenlia_movimientos', JSON.stringify(movimientos));
+    }
+
+    function loadFromLocal() {
+      const cached = localStorage.getItem('qwenlia_movimientos');
+      if (cached) {
+        movimientos = JSON.parse(cached);
+        renderMovements();
+        updateSummary();
+      }
+    }
+
+    async function syncQueueToSupabase() {
+      if (!isOnline || !currentUser) return;
+      updateSyncStatus('🔄 Sincronizando...');
+      try {
+        for (const mv of syncQueue) {
+          if (mv.action === 'add') {
+            const { error } = await supabase.from('movimientos').insert([{
+              user_id: currentUser.id,
+              fecha: mv.data.fecha,
+              concepto: mv.data.concepto,
+              monto: mv.data.monto,
+              tipo: mv.data.tipo,
+              subcuenta: mv.data.subcuenta
+            }]);
+            if (error) throw error;
+          } else if (mv.action === 'update') {
+            const { error } = await supabase.from('movimientos').update({
+              fecha: mv.data.fecha,
+              concepto: mv.data.concepto,
+              monto: mv.data.monto,
+              tipo: mv.data.tipo,
+              subcuenta: mv.data.subcuenta
+            }).eq('id', mv.id);
+            if (error) throw error;
+          } else if (mv.action === 'delete') {
+            const { error } = await supabase.from('movimientos').delete().eq('id', mv.id);
+            if (error) throw error;
+          }
+        }
+        syncQueue = [];
+        loadFromSupabase();
+        updateSyncStatus('✅ Sincronizado');
+      } catch (err) {
+        updateSyncStatus('⚠️ Error de sync. Reintentando...');
+        console.error('Sync error:', err);
+      }
+    }
+
+    // ==========================================
+    // CRUD & DATA FETCHING
+    // ==========================================
+    async function loadMovements() {
+      if (isOnline) {
+        await loadFromSupabase();
+      } else {
+        loadFromLocal();
+        updateSyncStatus('📴 Cargando desde caché');
+      }
+    }
+
+    async function loadFromSupabase() {
+      try {
+        updateSyncStatus('🔄 Descargando datos...');
+        const { data, error } = await supabase
+          .from('movimientos')
+          .select('*')
+          .order('fecha', { ascending: false });
+        
+        if (error) throw error;
+        movimientos = data || [];
+        saveToLocal();
+        renderMovements();
+        updateSummary();
+        updateSyncStatus('✅ Sincronizado');
+      } catch (err) {
+        console.error('Fetch error:', err);
+        loadFromLocal();
+        updateSyncStatus('⚠️ Error de red. Usando caché local.');
+      }
+    }
+
+    document.getElementById('btn-sync').addEventListener('click', () => {
+      if (isOnline) syncQueueToSupabase();
+      else showToast('Sin conexión. Activa internet para sincronizar.');
+    });
+
+    document.getElementById('movement-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fecha = document.getElementById('mv-fecha').value;
+      const concepto = document.getElementById('mv-concepto').value.trim();
+      const monto = parseFloat(document.getElementById('mv-monto').value);
+      const tipo = document.getElementById('mv-tipo').value;
+      const subcuenta = document.getElementById('mv-subcuenta').value.trim();
+
+      if (!fecha || !concepto || isNaN(monto)) return;
+
+      const payload = { fecha, concepto, monto, tipo, subcuenta };
+
+      if (editingId) {
+        // Update
+        movimientos = movimientos.map(m => m.id === editingId ? { ...m, ...payload } : m);
+        syncQueue.push({ action: 'update', id: editingId,  payload });
+        editingId = null;
+        document.getElementById('btn-cancel-edit').classList.add('hidden');
+        document.getElementById('btn-save-mv').textContent = '💾 Guardar Movimiento';
+      } else {
+        // Add
+        const tempId = 'local_' + Date.now();
+        movimientos.unshift({ id: tempId, user_id: currentUser?.id || 'unknown', ...payload, created_at: new Date().toISOString() });
+        syncQueue.push({ action: 'add', data: payload });
+      }
+
+      saveToLocal();
+      renderMovements();
+      updateSummary();
+      e.target.reset();
+      document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
+      if (isOnline) syncQueueToSupabase();
+      showToast('Movimiento registrado');
+    });
+
+    window.editMovement = (id) => {
+      const mv = movimientos.find(m => m.id === id);
+      if (!mv) return;
+      editingId = id;
+      document.getElementById('mv-fecha').value = mv.fecha;
+      document.getElementById('mv-concepto').value = mv.concepto;
+      document.getElementById('mv-monto').value = mv.monto;
+      document.getElementById('mv-tipo').value = mv.tipo;
+      document.getElementById('mv-subcuenta').value = mv.subcuenta;
+      document.getElementById('btn-save-mv').textContent = '✏️ Actualizar';
+      document.getElementById('btn-cancel-edit').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+      editingId = null;
+      document.getElementById('movement-form').reset();
+      document.getElementById('btn-save-mv').textContent = '💾 Guardar Movimiento';
+      document.getElementById('btn-cancel-edit').classList.add('hidden');
+      document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
+    });
+
+    window.deleteMovement = async (id) => {
+      if (!confirm('¿Eliminar este movimiento permanentemente?')) return;
+      movimientos = movimientos.filter(m => m.id !== id);
+      syncQueue.push({ action: 'delete', id });
+      saveToLocal();
+      renderMovements();
+      updateSummary();
+      if (isOnline) syncQueueToSupabase();
+      showToast('Movimiento eliminado');
+    };
+
+    // ==========================================
+    // RENDER & UI
+    // ==========================================
+    function renderMovements() {
+      const container = document.getElementById('movements-container');
+      container.innerHTML = '';
+      if (movimientos.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">No hay movimientos registrados.</p>';
+        return;
+      }
+
+      // Group by subcuenta
+      const groups = {};
+      movimientos.forEach(m => {
+        const key = m.subcuenta || 'Sin categoría';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(m);
+      });
+
+      Object.keys(groups).sort().forEach(sub => {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'subaccount-group';
+        
+        const header = document.createElement('div');
+        header.className = 'group-header';
+        header.innerHTML = `<span>📂 ${sub} <small style="color:var(--text-muted)">(${groups[sub].length})</small></span>`;
+        
+        const content = document.createElement('div');
+        content.className = 'group-content';
+        
+        header.addEventListener('click', () => content.classList.toggle('collapsed'));
+        
+        const table = document.createElement('div');
+        table.className = 'table-wrapper';
+        table.innerHTML = `
+          <table>
+            <thead><tr><th>Fecha ↕</th><th>Concepto</th><th>Monto</th><th>Acciones</th></tr></thead>
+            <tbody>
+              ${groups[sub].map(m => `
+                <tr>
+                  <td>${formatDate(m.fecha)}</td>
+                  <td>${m.concepto}</td>
+                  <td style="color: ${m.tipo === 'ingreso' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">
+                    ${m.tipo === 'ingreso' ? '+' : '-'}$${m.monto.toFixed(2)}
+                  </td>
+                  <td class="actions">
+                    <button class="btn-icon secondary" onclick="editMovement('${m.id}')">✏️</button>
+                    <button class="btn-icon danger" onclick="deleteMovement('${m.id}')">🗑️</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        
+        content.appendChild(table);
+        groupDiv.appendChild(header);
+        groupDiv.appendChild(content);
+        container.appendChild(groupDiv);
+      });
+    }
+
+    function updateSummary() {
+      const ingresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((a, b) => a + b.monto, 0);
+      const egresos = movimientos.filter(m => m.tipo === 'egreso').reduce((a, b) => a + b.monto, 0);
+      const saldo = ingresos - egresos;
+      
+      document.getElementById('total-ingresos').textContent = `$${ingresos.toFixed(2)}`;
+      document.getElementById('total-egresos').textContent = `$${egresos.toFixed(2)}`;
+      document.getElementById('saldo-total').textContent = `$${saldo.toFixed(2)}`;
+      document.getElementById('neto').textContent = `$${saldo.toFixed(2)}`;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      // Asume YYYY-MM-DD o DD/MM/YYYY
+      if (dateStr.includes('-')) {
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
+      }
+      return dateStr;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ==========================================
+    // CSV PARSER & EXPORT
+    // ==========================================
+    document.getElementById('btn-import').addEventListener('click', () => {
+      document.getElementById('csv-import').click();
+    });
+
+    document.getElementById('csv-import').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const parsed = parseCSV(text);
+      let added = 0;
+      
+      parsed.forEach(row => {
+        if (row.length < 3) return;
+        const [fechaRaw, concepto, montoRaw, tipoRaw = 'egreso', subcuentaRaw = 'Importado'] = row;
+        const monto = parseFloat(montoRaw.replace(/[^0-9.-]/g, ''));
+        if (isNaN(monto)) return;
+        
+        // Convertir DD/MM/YYYY a YYYY-MM-DD
+        let fecha = fechaRaw.trim();
+        if (fecha.includes('/')) {
+          const [d, m, y] = fecha.split('/');
+          fecha = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+        }
+        
+        movimientos.unshift({
+          id: 'local_' + Date.now() + Math.random().toString(36).substr(2, 5),
+          user_id: currentUser?.id || 'unknown',
+          fecha,
+          concepto: concepto.replace(/^"|"$/g, '').trim(),
+          monto,
+          tipo: tipoRaw.toLowerCase().includes('ing') ? 'ingreso' : 'egreso',
+          subcuenta: subcuentaRaw.replace(/^"|"$/g, '').trim(),
+          created_at: new Date().toISOString()
+        });
+        syncQueue.push({ action: 'add',  { fecha, concepto, monto, tipo: movimientos[0].tipo, subcuenta: movimientos[0].subcuenta } });
+        added++;
+      });
+      
+      saveToLocal();
+      renderMovements();
+      updateSummary();
+      if (isOnline) syncQueueToSupabase();
+      showToast(`✅ ${added} movimientos importados`);
+      e.target.value = '';
+    });
+
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const sep = lines[0].includes(';') ? ';' : ',';
+      const result = [];
+      
+      for (let line of lines) {
+        if (!line.trim()) continue;
+        const fields = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') inQuotes = !inQuotes;
+          else if ((char === sep) && !inQuotes) {
+            fields.push(current);
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        fields.push(current);
+        result.push(fields.map(f => f.trim()));
+      }
+      return result;
+    }
+
+    document.getElementById('btn-export').addEventListener('click', () => {
+      if (movimientos.length === 0) return showToast('⚠️ No hay datos para exportar');
+      const bom = '\uFEFF';
+      const sep = ';';
+      const header = ['Fecha', 'Concepto', 'Monto', 'Tipo', 'Subcuenta'].join(sep);
+      const rows = movimientos.map(m => [
+        m.fecha,
+        `"${m.concepto.replace(/"/g, '""')}"`,
+        m.monto.toFixed(2),
+        m.tipo,
+        `"${m.subcuenta.replace(/"/g, '""')}"`
+      ].join(sep));
+      
+      const csvContent = bom + header + '\n' + rows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `QwenLIA_Finanzas_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('📊 Archivo exportado correctamente');
+    });
+
+    // ==========================================
+    // INIT
+    // ==========================================
+    checkSession();
+    document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
+  </script>
+</body>
+</html>
