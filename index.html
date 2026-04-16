@@ -4,31 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QwenLIA Finanzas</title>
-  <!-- Supabase JS v2 CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --bg: #0f1115;
-      --surface: #1a1d24;
-      --surface-hover: #252830;
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --border: #334155;
-      --radius: 10px;
-      --shadow: 0 4px 12px rgba(0,0,0,0.3);
+      --bg: #0f1115; --surface: #1a1d24; --surface-hover: #252830;
+      --primary: #3b82f6; --primary-hover: #2563eb;
+      --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
+      --text: #e2e8f0; --text-muted: #94a3b8; --border: #334155;
+      --radius: 10px; --shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      min-height: 100vh;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+      min-height: 100vh; padding-bottom: 40px;
     }
     .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
     header {
@@ -37,17 +26,27 @@
     }
     .logo { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
     .logo span { color: var(--text-muted); font-weight: 400; font-size: 0.9rem; }
-    .auth-box, .dashboard { background: var(--surface); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .auth-box, .dashboard {
+      background: var(--surface); padding: 20px;
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
     .hidden { display: none !important; }
     input, select, button {
       width: 100%; padding: 12px; margin-bottom: 10px;
-      background: var(--bg); border: 1px solid var(--border); color: var(--text);
-      border-radius: 8px; font-size: 14px; transition: all 0.2s;
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); border-radius: 8px; font-size: 14px;
+      transition: all 0.2s;
     }
     input:focus, select:focus { outline: none; border-color: var(--primary); }
-    button { cursor: pointer; font-weight: 600; background: var(--primary); color: white; border: none; }
+    button {
+      cursor: pointer; font-weight: 600;
+      background: var(--primary); color: white; border: none;
+    }
     button:hover { background: var(--primary-hover); }
-    button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+    button.secondary {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
     button.secondary:hover { background: var(--surface-hover); }
     button.danger { background: var(--danger); }
     button.danger:hover { background: #dc2626; }
@@ -56,15 +55,23 @@
       display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 15px; margin: 20px 0;
     }
-    .card { background: var(--surface); padding: 15px; border-radius: var(--radius); text-align: center; }
+    .card {
+      background: var(--surface); padding: 15px;
+      border-radius: var(--radius); text-align: center;
+    }
     .card h3 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
     .card p { font-size: 1.5rem; font-weight: 700; }
     .card.income p { color: var(--success); }
     .card.expense p { color: var(--danger); }
     .card.net p { color: var(--primary); }
     .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-    .controls button, .controls input, .controls select { width: auto; margin: 0; flex: 1; min-width: 120px; }
-    .table-wrapper { overflow-x: auto; margin-top: 10px; border-radius: var(--radius); border: 1px solid var(--border); }
+    .controls button, .controls input, .controls select {
+      width: auto; margin: 0; flex: 1; min-width: 120px;
+    }
+    .table-wrapper {
+      overflow-x: auto; margin-top: 10px;
+      border-radius: var(--radius); border: 1px solid var(--border);
+    }
     table { width: 100%; border-collapse: collapse; min-width: 600px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
     th { background: var(--surface-hover); color: var(--text-muted); font-weight: 600; cursor: pointer; }
@@ -74,18 +81,28 @@
     .subaccount-group { margin-bottom: 15px; }
     .group-header {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 15px; background: var(--surface-hover); cursor: pointer;
-      border-radius: var(--radius) var(--radius) 0 0; border: 1px solid var(--border); border-bottom: none;
+      padding: 10px 15px; background: var(--surface-hover);
+      cursor: pointer; border-radius: var(--radius) var(--radius) 0 0;
+      border: 1px solid var(--border); border-bottom: none;
     }
-    .group-content { border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); }
+    .group-content {
+      border: 1px solid var(--border);
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
     .group-content.collapsed { display: none; }
-    .status { font-size: 0.8rem; color: var(--text-muted); text-align: right; margin-bottom: 10px; }
+    .status {
+      font-size: 0.8rem; color: var(--text-muted);
+      text-align: right; margin-bottom: 10px;
+    }
     .toast {
-      position: fixed; bottom: 20px; right: 20px; background: var(--success);
-      color: white; padding: 12px 20px; border-radius: var(--radius);
-      box-shadow: var(--shadow); transform: translateY(100px); transition: transform 0.3s;
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--success); color: white;
+      padding: 12px 20px; border-radius: var(--radius);
+      box-shadow: var(--shadow); transform: translateY(100px);
+      transition: transform 0.3s; z-index: 1000;
     }
     .toast.show { transform: translateY(0); }
+    .toast.error { background: var(--danger); }
     @media (max-width: 768px) {
       .grid-2, .controls { grid-template-columns: 1fr; }
       .controls button { width: 100%; }
@@ -105,23 +122,21 @@
       </div>
     </header>
 
-    <!-- Auth Section -->
     <div id="auth-section" class="auth-box">
       <h2 style="margin-bottom: 15px; text-align: center;">Control financiero inteligente</h2>
       <form id="auth-form">
         <input type="email" id="auth-email" placeholder="Correo electrónico" required>
-        <input type="password" id="auth-password" placeholder="Contraseña" required minlength="6">
+        <input type="password" id="auth-password" placeholder="Contraseña (mín. 6 caracteres)" required minlength="6">
         <div class="grid-2">
           <button type="submit" id="btn-login">Iniciar Sesión</button>
           <button type="button" id="btn-signup" class="secondary">Crear Cuenta</button>
         </div>
-        <p id="auth-msg" style="text-align: center; margin-top: 10px; font-size: 0.9rem; color: var(--warning);"></p>
+        <p id="auth-msg" style="text-align: center; margin-top: 10px; font-size: 0.9rem; color: var(--warning); min-height: 1.2em;"></p>
       </form>
     </div>
 
-    <!-- Dashboard Section -->
     <div id="dashboard-section" class="dashboard hidden">
-      <div class="status" id="sync-status">🔄 Sincronizando...</div>
+      <div class="status" id="sync-status">🔄 Conectando...</div>
       
       <div class="summary">
         <div class="card"><h3>SALDO TOTAL</h3><p id="saldo-total">$0.00</p></div>
@@ -161,16 +176,11 @@
   <div id="toast" class="toast">Operación exitosa</div>
 
   <script>
-    // ==========================================
-    // CONFIGURACIÓN & INICIALIZACIÓN
-    // ==========================================
     const SUPABASE_URL = 'https://nlyobscmahatxiiikafu.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5seW9ic2NtYWhhdHhpaWlrYWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTk5OTksImV4cCI6MjA5MTc5NTk5OX0.9tbTFVk-hh1XckNRoq0RxmkpZ8I8jye7jtV5guT_kA4';
     
-    // Corrección de sintaxis solicitada:
-    // ❌ Incorrecto: const { { session }, error } = await supabase.auth.getSession()
-    // ✅ Correcto:   const { data: { session }, error } = await supabase.auth.getSession(),
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Inicializar cliente Supabase con nuevo nombre para evitar conflictos
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
     let movimientos = [];
@@ -178,9 +188,31 @@
     let syncQueue = [];
     let isOnline = navigator.onLine;
 
-    // ==========================================
-    // AUTH MODULE
-    // ==========================================
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = 'toast' + (isError ? ' error' : '');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function updateSyncStatus(msg) {
+      document.getElementById('sync-status').textContent = msg;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      if (dateStr.includes('-')) {
+        const [y, m, d] = dateStr.split('-');
+        return `${d}/${m}/${y}`;
+      }
+      return dateStr;
+    }
+
+    function formatCurrency(amount) {
+      return '$' + (amount || 0).toFixed(2);
+    }
+
     const authForm = document.getElementById('auth-form');
     const authEmail = document.getElementById('auth-email');
     const authPass = document.getElementById('auth-password');
@@ -190,49 +222,56 @@
       e.preventDefault();
       authMsg.textContent = '';
       try {
-        // ✅ CORRECCIÓN 1: Login
-        const { data, error } = await supabase.auth.signInWithPassword({...});
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
           email: authEmail.value.trim(),
           password: authPass.value
         });
         if (error) throw error;
-        handleAuthSuccess(data.session);
+        if (data?.session) handleAuthSuccess(data.session);
       } catch (err) {
         authMsg.textContent = '❌ ' + err.message;
+        showToast(err.message, true);
       }
     });
 
     document.getElementById('btn-signup').addEventListener('click', async () => {
       authMsg.textContent = '';
+      if (authPass.value.length < 6) {
+        authMsg.textContent = '❌ La contraseña debe tener al menos 6 caracteres';
+        return;
+      }
       try {
-        // ✅ CORRECCIÓN 2: Signup
-        const { data, error } = await supabase.auth.signUp({...});
+        const { data, error } = await supabaseClient.auth.signUp({
           email: authEmail.value.trim(),
           password: authPass.value
         });
         if (error) throw error;
-        if (data?.user) authMsg.textContent = '✅ Cuenta creada. Revisa tu correo para confirmar.';
+        if (data?.user) {
+          authMsg.textContent = '✅ Cuenta creada. Revisa tu correo si es necesario.';
+          showToast('Cuenta creada exitosamente');
+        }
         if (data?.session) handleAuthSuccess(data.session);
       } catch (err) {
         authMsg.textContent = '❌ ' + err.message;
+        showToast(err.message, true);
       }
     });
 
     document.getElementById('btn-logout').addEventListener('click', async () => {
-      await supabase.auth.signOut();
+      await supabaseClient.auth.signOut();
       window.location.reload();
     });
 
     async function checkSession() {
-  const { data: { session }, error } = await supabase.auth.getSession();  // ✅ BIEN
-  // ...
-}
+      try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
         if (session && !error) {
           handleAuthSuccess(session);
         } else {
           showAuth();
         }
       } catch (err) {
+        console.error('Session check error:', err);
         showAuth();
       }
     }
@@ -252,70 +291,87 @@
       document.getElementById('user-info').classList.add('hidden');
     }
 
-    // ==========================================
-    // STATE & OFFLINE FALLBACK
-    // ==========================================
-    window.addEventListener('online', () => { isOnline = true; syncQueueToSupabase(); });
-    window.addEventListener('offline', () => { isOnline = false; updateSyncStatus('📴 Modo Offline'); });
-
-    function updateSyncStatus(msg) {
-      document.getElementById('sync-status').textContent = msg;
-    }
+    window.addEventListener('online', () => {
+      isOnline = true;
+      updateSyncStatus('🔄 Sincronizando...');
+      syncQueueToSupabase();
+    });
+    
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      updateSyncStatus('📴 Modo Offline');
+    });
 
     function saveToLocal() {
-      localStorage.setItem('qwenlia_movimientos', JSON.stringify(movimientos));
+      try {
+        localStorage.setItem('qwenlia_movimientos', JSON.stringify(movimientos));
+      } catch (e) {
+        console.warn('No se pudo guardar en localStorage:', e);
+      }
     }
 
     function loadFromLocal() {
-      const cached = localStorage.getItem('qwenlia_movimientos');
-      if (cached) {
-        movimientos = JSON.parse(cached);
-        renderMovements();
-        updateSummary();
+      try {
+        const cached = localStorage.getItem('qwenlia_movimientos');
+        if (cached) {
+          movimientos = JSON.parse(cached);
+          renderMovements();
+          updateSummary();
+        }
+      } catch (e) {
+        console.warn('No se pudo cargar desde localStorage:', e);
       }
     }
 
     async function syncQueueToSupabase() {
       if (!isOnline || !currentUser) return;
-      updateSyncStatus('🔄 Sincronizando...');
+      
+      if (syncQueue.length === 0) {
+        updateSyncStatus('✅ Sincronizado');
+        return;
+      }
+      
+      updateSyncStatus('🔄 Sincronizando ' + syncQueue.length + ' cambios...');
+      
       try {
-        for (const mv of syncQueue) {
-          if (mv.action === 'add') {
-            const { error } = await supabase.from('movimientos').insert([{
+        for (const item of syncQueue) {
+          if (item.action === 'add') {
+            const { error } = await supabaseClient.from('movimientos').insert([{
               user_id: currentUser.id,
-              fecha: mv.data.fecha,
-              concepto: mv.data.concepto,
-              monto: mv.data.monto,
-              tipo: mv.data.tipo,
-              subcuenta: mv.data.subcuenta
+              fecha: item.data.fecha,
+              concepto: item.data.concepto,
+              monto: item.data.monto,
+              tipo: item.data.tipo,
+              subcuenta: item.data.subcuenta
             }]);
             if (error) throw error;
-          } else if (mv.action === 'update') {
-            const { error } = await supabase.from('movimientos').update({
-              fecha: mv.data.fecha,
-              concepto: mv.data.concepto,
-              monto: mv.data.monto,
-              tipo: mv.data.tipo,
-              subcuenta: mv.data.subcuenta
-            }).eq('id', mv.id);
+          } else if (item.action === 'update') {
+            const { error } = await supabaseClient.from('movimientos')
+              .update({
+                fecha: item.data.fecha,
+                concepto: item.data.concepto,
+                monto: item.data.monto,
+                tipo: item.data.tipo,
+                subcuenta: item.data.subcuenta
+              })
+              .eq('id', item.id);
             if (error) throw error;
-          } else if (mv.action === 'delete') {
-            const { error } = await supabase.from('movimientos').delete().eq('id', mv.id);
+          } else if (item.action === 'delete') {
+            const { error } = await supabaseClient.from('movimientos')
+              .delete()
+              .eq('id', item.id);
             if (error) throw error;
           }
         }
         syncQueue = [];
-        loadFromSupabase();
+        await loadFromSupabase();
         updateSyncStatus('✅ Sincronizado');
       } catch (err) {
-        updateSyncStatus('⚠️ Error de sync. Reintentando...');
         console.error('Sync error:', err);
+        updateSyncStatus('⚠️ Error de sync. Reintentando...');
       }
     }
 
-    // ==========================================
-    // CRUD & DATA FETCHING
-    // ==========================================
     async function loadMovements() {
       if (isOnline) {
         await loadFromSupabase();
@@ -328,12 +384,14 @@
     async function loadFromSupabase() {
       try {
         updateSyncStatus('🔄 Descargando datos...');
-        const { data, error } = await supabase
+        
+        const { data, error } = await supabaseClient
           .from('movimientos')
           .select('*')
           .order('fecha', { ascending: false });
         
         if (error) throw error;
+        
         movimientos = data || [];
         saveToLocal();
         renderMovements();
@@ -347,33 +405,46 @@
     }
 
     document.getElementById('btn-sync').addEventListener('click', () => {
-      if (isOnline) syncQueueToSupabase();
-      else showToast('Sin conexión. Activa internet para sincronizar.');
+      if (isOnline) {
+        syncQueueToSupabase();
+      } else {
+        showToast('Sin conexión. Activa internet para sincronizar.', true);
+      }
     });
 
     document.getElementById('movement-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      
       const fecha = document.getElementById('mv-fecha').value;
       const concepto = document.getElementById('mv-concepto').value.trim();
       const monto = parseFloat(document.getElementById('mv-monto').value);
       const tipo = document.getElementById('mv-tipo').value;
       const subcuenta = document.getElementById('mv-subcuenta').value.trim();
 
-      if (!fecha || !concepto || isNaN(monto)) return;
+      if (!fecha || !concepto || isNaN(monto)) {
+        showToast('Por favor completa todos los campos', true);
+        return;
+      }
 
       const payload = { fecha, concepto, monto, tipo, subcuenta };
 
       if (editingId) {
-        // Update
-        movimientos = movimientos.map(m => m.id === editingId ? { ...m, ...payload } : m);
-        syncQueue.push({ action: 'update', id: editingId,  payload });
+        movimientos = movimientos.map(m => 
+          m.id === editingId ? { ...m, ...payload } : m
+        );
+        syncQueue.push({ action: 'update', id: editingId, data: payload });
         editingId = null;
         document.getElementById('btn-cancel-edit').classList.add('hidden');
         document.getElementById('btn-save-mv').textContent = '💾 Guardar Movimiento';
       } else {
-        // Add
-        const tempId = 'local_' + Date.now();
-        movimientos.unshift({ id: tempId, user_id: currentUser?.id || 'unknown', ...payload, created_at: new Date().toISOString() });
+        const tempId = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        const newMov = {
+          id: tempId,
+          user_id: currentUser?.id || 'unknown',
+          ...payload,
+          created_at: new Date().toISOString()
+        };
+        movimientos.unshift(newMov);
         syncQueue.push({ action: 'add', data: payload });
       }
 
@@ -382,19 +453,22 @@
       updateSummary();
       e.target.reset();
       document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
+      
       if (isOnline) syncQueueToSupabase();
       showToast('Movimiento registrado');
     });
 
-    window.editMovement = (id) => {
+    window.editMovement = function(id) {
       const mv = movimientos.find(m => m.id === id);
       if (!mv) return;
+      
       editingId = id;
       document.getElementById('mv-fecha').value = mv.fecha;
       document.getElementById('mv-concepto').value = mv.concepto;
       document.getElementById('mv-monto').value = mv.monto;
       document.getElementById('mv-tipo').value = mv.tipo;
       document.getElementById('mv-subcuenta').value = mv.subcuenta;
+      
       document.getElementById('btn-save-mv').textContent = '✏️ Actualizar';
       document.getElementById('btn-cancel-edit').classList.remove('hidden');
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -408,29 +482,29 @@
       document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
     });
 
-    window.deleteMovement = async (id) => {
+    window.deleteMovement = async function(id) {
       if (!confirm('¿Eliminar este movimiento permanentemente?')) return;
+      
       movimientos = movimientos.filter(m => m.id !== id);
       syncQueue.push({ action: 'delete', id });
+      
       saveToLocal();
       renderMovements();
       updateSummary();
+      
       if (isOnline) syncQueueToSupabase();
       showToast('Movimiento eliminado');
     };
 
-    // ==========================================
-    // RENDER & UI
-    // ==========================================
     function renderMovements() {
       const container = document.getElementById('movements-container');
       container.innerHTML = '';
+      
       if (movimientos.length === 0) {
         container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">No hay movimientos registrados.</p>';
         return;
       }
 
-      // Group by subcuenta
       const groups = {};
       movimientos.forEach(m => {
         const key = m.subcuenta || 'Sin categoría';
@@ -455,14 +529,21 @@
         table.className = 'table-wrapper';
         table.innerHTML = `
           <table>
-            <thead><tr><th>Fecha ↕</th><th>Concepto</th><th>Monto</th><th>Acciones</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th>Monto</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
             <tbody>
               ${groups[sub].map(m => `
                 <tr>
                   <td>${formatDate(m.fecha)}</td>
                   <td>${m.concepto}</td>
                   <td style="color: ${m.tipo === 'ingreso' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">
-                    ${m.tipo === 'ingreso' ? '+' : '-'}$${m.monto.toFixed(2)}
+                    ${m.tipo === 'ingreso' ? '+' : '-'}${formatCurrency(m.monto)}
                   </td>
                   <td class="actions">
                     <button class="btn-icon secondary" onclick="editMovement('${m.id}')">✏️</button>
@@ -482,36 +563,22 @@
     }
 
     function updateSummary() {
-      const ingresos = movimientos.filter(m => m.tipo === 'ingreso').reduce((a, b) => a + b.monto, 0);
-      const egresos = movimientos.filter(m => m.tipo === 'egreso').reduce((a, b) => a + b.monto, 0);
+      const ingresos = movimientos
+        .filter(m => m.tipo === 'ingreso')
+        .reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
+      
+      const egresos = movimientos
+        .filter(m => m.tipo === 'egreso')
+        .reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
+      
       const saldo = ingresos - egresos;
       
-      document.getElementById('total-ingresos').textContent = `$${ingresos.toFixed(2)}`;
-      document.getElementById('total-egresos').textContent = `$${egresos.toFixed(2)}`;
-      document.getElementById('saldo-total').textContent = `$${saldo.toFixed(2)}`;
-      document.getElementById('neto').textContent = `$${saldo.toFixed(2)}`;
+      document.getElementById('total-ingresos').textContent = formatCurrency(ingresos);
+      document.getElementById('total-egresos').textContent = formatCurrency(egresos);
+      document.getElementById('saldo-total').textContent = formatCurrency(saldo);
+      document.getElementById('neto').textContent = formatCurrency(saldo);
     }
 
-    function formatDate(dateStr) {
-      if (!dateStr) return '-';
-      // Asume YYYY-MM-DD o DD/MM/YYYY
-      if (dateStr.includes('-')) {
-        const [y, m, d] = dateStr.split('-');
-        return `${d}/${m}/${y}`;
-      }
-      return dateStr;
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
-    }
-
-    // ==========================================
-    // CSV PARSER & EXPORT
-    // ==========================================
     document.getElementById('btn-import').addEventListener('click', () => {
       document.getElementById('csv-import').click();
     });
@@ -519,100 +586,87 @@
     document.getElementById('csv-import').addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      const text = await file.text();
-      const parsed = parseCSV(text);
-      let added = 0;
       
-      parsed.forEach(row => {
-        if (row.length < 3) return;
-        const [fechaRaw, concepto, montoRaw, tipoRaw = 'egreso', subcuentaRaw = 'Importado'] = row;
-        const monto = parseFloat(montoRaw.replace(/[^0-9.-]/g, ''));
-        if (isNaN(monto)) return;
+      try {
+        const text = await file.text();
+        const lines = text.trim().split(/\r?\n/);
+        let added = 0;
         
-        // Convertir DD/MM/YYYY a YYYY-MM-DD
-        let fecha = fechaRaw.trim();
-        if (fecha.includes('/')) {
-          const [d, m, y] = fecha.split('/');
-          fecha = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
-        }
-        
-        movimientos.unshift({
-          id: 'local_' + Date.now() + Math.random().toString(36).substr(2, 5),
-          user_id: currentUser?.id || 'unknown',
-          fecha,
-          concepto: concepto.replace(/^"|"$/g, '').trim(),
-          monto,
-          tipo: tipoRaw.toLowerCase().includes('ing') ? 'ingreso' : 'egreso',
-          subcuenta: subcuentaRaw.replace(/^"|"$/g, '').trim(),
-          created_at: new Date().toISOString()
+        lines.forEach(line => {
+          const row = line.split(/[;,]/);
+          if (row.length < 3) return;
+          
+          const [fechaRaw, concepto, montoRaw, tipoRaw = 'egreso', subcuentaRaw = 'Importado'] = row;
+          const monto = parseFloat(montoRaw.replace(/[^0-9.-]/g, ''));
+          if (isNaN(monto)) return;
+          
+          let fecha = fechaRaw.trim();
+          if (fecha.includes('/')) {
+            const [d, m, y] = fecha.split('/');
+            fecha = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+          }
+          
+          const tempId = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          const tipo = tipoRaw.toLowerCase().includes('ing') ? 'ingreso' : 'egreso';
+          
+          movimientos.unshift({
+            id: tempId,
+            user_id: currentUser?.id || 'unknown',
+            fecha,
+            concepto: concepto.trim(),
+            monto,
+            tipo,
+            subcuenta: subcuentaRaw.trim(),
+            created_at: new Date().toISOString()
+          });
+          
+          syncQueue.push({
+            action: 'add',
+            data: { fecha, concepto: concepto.trim(), monto, tipo, subcuenta: subcuentaRaw.trim() }
+          });
+          added++;
         });
-        syncQueue.push({ action: 'add',  { fecha, concepto, monto, tipo: movimientos[0].tipo, subcuenta: movimientos[0].subcuenta } });
-        added++;
-      });
-      
-      saveToLocal();
-      renderMovements();
-      updateSummary();
-      if (isOnline) syncQueueToSupabase();
-      showToast(`✅ ${added} movimientos importados`);
+        
+        saveToLocal();
+        renderMovements();
+        updateSummary();
+        if (isOnline) syncQueueToSupabase();
+        showToast(`✅ ${added} movimientos importados`);
+      } catch (err) {
+        showToast('Error al importar CSV', true);
+      }
       e.target.value = '';
     });
 
-    function parseCSV(text) {
-      const lines = text.trim().split(/\r?\n/);
-      const sep = lines[0].includes(';') ? ';' : ',';
-      const result = [];
-      
-      for (let line of lines) {
-        if (!line.trim()) continue;
-        const fields = [];
-        let current = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') inQuotes = !inQuotes;
-          else if ((char === sep) && !inQuotes) {
-            fields.push(current);
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        fields.push(current);
-        result.push(fields.map(f => f.trim()));
-      }
-      return result;
-    }
-
     document.getElementById('btn-export').addEventListener('click', () => {
-      if (movimientos.length === 0) return showToast('⚠️ No hay datos para exportar');
+      if (movimientos.length === 0) {
+        showToast('⚠️ No hay datos para exportar', true);
+        return;
+      }
       const bom = '\uFEFF';
       const sep = ';';
       const header = ['Fecha', 'Concepto', 'Monto', 'Tipo', 'Subcuenta'].join(sep);
       const rows = movimientos.map(m => [
         m.fecha,
-        `"${m.concepto.replace(/"/g, '""')}"`,
-        m.monto.toFixed(2),
+        `"${(m.concepto || '').replace(/"/g, '""')}"`,
+        (m.monto || 0).toFixed(2),
         m.tipo,
-        `"${m.subcuenta.replace(/"/g, '""')}"`
+        `"${(m.subcuenta || '').replace(/"/g, '""')}"`
       ].join(sep));
-      
       const csvContent = bom + header + '\n' + rows.join('\n');
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `QwenLIA_Finanzas_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `Export_Finanzas_${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      showToast('📊 Archivo exportado correctamente');
     });
 
-    // ==========================================
-    // INIT
-    // ==========================================
-    checkSession();
-    document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
+      checkSession();
+    });
   </script>
 </body>
 </html>
