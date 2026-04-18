@@ -51,6 +51,7 @@
     button.danger { background: var(--danger); }
     button.danger:hover { background: #dc2626; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
     .summary {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 15px; margin: 20px 0;
@@ -74,7 +75,7 @@
     }
     table { width: 100%; border-collapse: collapse; min-width: 600px; }
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: var(--surface-hover); color: var(--text-muted); font-weight: 600; cursor: pointer; }
+    th { background: var(--surface-hover); color: var(--text-muted); font-weight: 600; }
     tr:hover { background: var(--surface-hover); }
     .actions { display: flex; gap: 8px; }
     .btn-icon { padding: 6px 8px; font-size: 14px; width: auto; }
@@ -104,7 +105,7 @@
     .toast.show { transform: translateY(0); }
     .toast.error { background: var(--danger); }
     @media (max-width: 768px) {
-      .grid-2, .controls { grid-template-columns: 1fr; }
+      .grid-2, .grid-3, .controls { grid-template-columns: 1fr; }
       .controls button { width: 100%; }
       .summary { grid-template-columns: 1fr; }
       table { font-size: 0.9rem; }
@@ -145,14 +146,55 @@
         <div class="card net"><h3>NETO</h3><p id="neto">$0.00</p></div>
       </div>
 
+      <div id="subcuentas-manager" class="dashboard hidden" style="margin-bottom: 20px; border: 1px dashed var(--border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3>💳 Gestionar Cuentas y Tarjetas</h3>
+          <button type="button" class="btn-icon secondary" id="btn-close-cuentas">❌ Cerrar</button>
+        </div>
+        <form id="subcuenta-form" class="grid-3">
+          <input type="text" id="sub-cuenta-padre" placeholder="Cuenta (ej. Casa, Trabajo)" required>
+          <input type="text" id="sub-nombre" placeholder="Subcuenta (ej. BBVA)" required>
+          <input type="text" id="sub-terminacion" placeholder="Últimos 4 dígitos" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          <button type="submit" style="grid-column: 1 / -1;">➕ Agregar a mi catálogo</button>
+        </form>
+        <div id="subcuentas-list" style="margin-top: 15px;"></div>
+      </div>
+
+      <div id="import-panel" class="dashboard hidden" style="margin-bottom: 20px; border: 1px dashed var(--primary); background: var(--surface-hover);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h3>📂 Importar Movimientos</h3>
+          <button type="button" class="btn-icon secondary" id="btn-close-import">❌</button>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">El CSV debe tener este orden: <b>date, note, income, expense</b></p>
+        
+        <div class="grid-3" style="align-items: center;">
+          <select id="import-cuenta" required>
+            <option value="">1. Elige Cuenta de destino...</option>
+          </select>
+          <select id="import-subcuenta" required disabled>
+            <option value="">2. Elige Subcuenta...</option>
+          </select>
+          <input type="file" id="csv-import-file" accept=".csv" style="margin-bottom:0;">
+        </div>
+        <button type="button" id="btn-process-import" style="margin-top: 15px;">🚀 Procesar Importación</button>
+      </div>
+
       <form id="movement-form" style="margin-bottom: 20px;">
-        <div class="grid-2">
+        <div class="grid-3">
           <input type="date" id="mv-fecha" required>
-          <input type="text" id="mv-subcuenta" placeholder="Subcuenta (ej. Nómina)" required>
+          <select id="mv-cuenta" required>
+            <option value="">1. Elige una Cuenta...</option>
+          </select>
+          <div style="display: flex; gap: 5px;">
+            <select id="mv-subcuenta" required disabled>
+              <option value="">2. Elige la Subcuenta...</option>
+            </select>
+            <button type="button" id="btn-toggle-cuentas" class="secondary" style="width: auto;" title="Gestionar cuentas">⚙️</button>
+          </div>
         </div>
         <div class="grid-2">
           <input type="text" id="mv-concepto" placeholder="Concepto" required>
-          <input type="number" id="mv-monto" step="0.01" placeholder="Monto" required>
+          <input type="number" id="mv-monto" step="0.01" min="0" placeholder="Monto" required>
         </div>
         <select id="mv-tipo" required>
           <option value="ingreso">📈 Ingreso</option>
@@ -163,9 +205,8 @@
       </form>
 
       <div class="controls">
-        <input type="file" id="csv-import" accept=".csv" style="display: none;">
-        <button id="btn-import" class="secondary">📂 Importar CSV</button>
-        <button id="btn-export" class="secondary">📊 Exportar Excel</button>
+        <button id="btn-toggle-import" class="secondary">📂 Importar CSV</button>
+        <button id="btn-export" class="secondary">📊 Exportar todos los movimientos</button>
         <button id="btn-sync" class="secondary">🔄 Forzar Sync</button>
       </div>
 
@@ -179,11 +220,11 @@
     const SUPABASE_URL = 'https://nlyobscmahatxiiikafu.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5seW9ic2NtYWhhdHhpaWlrYWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTk5OTksImV4cCI6MjA5MTc5NTk5OX0.9tbTFVk-hh1XckNRoq0RxmkpZ8I8jye7jtV5guT_kA4';
     
-    // Inicializar cliente Supabase con nuevo nombre para evitar conflictos
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
     let movimientos = [];
+    let listaSubcuentas = [];
     let editingId = null;
     let syncQueue = [];
     let isOnline = navigator.onLine;
@@ -210,49 +251,34 @@
     }
 
     function formatCurrency(amount) {
-      return '$' + (amount || 0).toFixed(2);
+      const num = amount || 0;
+      return num < 0 ? '-$' + Math.abs(num).toFixed(2) : '$' + num.toFixed(2);
     }
 
-    const authForm = document.getElementById('auth-form');
-    const authEmail = document.getElementById('auth-email');
-    const authPass = document.getElementById('auth-password');
-    const authMsg = document.getElementById('auth-msg');
-
+    // AUTH
     document.getElementById('btn-login').addEventListener('click', async (e) => {
       e.preventDefault();
-      authMsg.textContent = '';
       try {
         const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email: authEmail.value.trim(),
-          password: authPass.value
+          email: document.getElementById('auth-email').value.trim(),
+          password: document.getElementById('auth-password').value
         });
         if (error) throw error;
         if (data?.session) handleAuthSuccess(data.session);
       } catch (err) {
-        authMsg.textContent = '❌ ' + err.message;
         showToast(err.message, true);
       }
     });
 
     document.getElementById('btn-signup').addEventListener('click', async () => {
-      authMsg.textContent = '';
-      if (authPass.value.length < 6) {
-        authMsg.textContent = '❌ La contraseña debe tener al menos 6 caracteres';
-        return;
-      }
       try {
         const { data, error } = await supabaseClient.auth.signUp({
-          email: authEmail.value.trim(),
-          password: authPass.value
+          email: document.getElementById('auth-email').value.trim(),
+          password: document.getElementById('auth-password').value
         });
         if (error) throw error;
-        if (data?.user) {
-          authMsg.textContent = '✅ Cuenta creada. Revisa tu correo si es necesario.';
-          showToast('Cuenta creada exitosamente');
-        }
-        if (data?.session) handleAuthSuccess(data.session);
+        showToast('Cuenta creada exitosamente');
       } catch (err) {
-        authMsg.textContent = '❌ ' + err.message;
         showToast(err.message, true);
       }
     });
@@ -263,17 +289,8 @@
     });
 
     async function checkSession() {
-      try {
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
-        if (session && !error) {
-          handleAuthSuccess(session);
-        } else {
-          showAuth();
-        }
-      } catch (err) {
-        console.error('Session check error:', err);
-        showAuth();
-      }
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (session) handleAuthSuccess(session);
     }
 
     function handleAuthSuccess(session) {
@@ -282,280 +299,354 @@
       document.getElementById('dashboard-section').classList.remove('hidden');
       document.getElementById('user-info').classList.remove('hidden');
       document.getElementById('user-email').textContent = currentUser.email;
+      loadSubcuentas();
       loadMovements();
     }
 
-    function showAuth() {
-      document.getElementById('auth-section').classList.remove('hidden');
-      document.getElementById('dashboard-section').classList.add('hidden');
-      document.getElementById('user-info').classList.add('hidden');
+    // SUBCUENTAS
+    document.getElementById('btn-toggle-cuentas').addEventListener('click', () => {
+      document.getElementById('subcuentas-manager').classList.toggle('hidden');
+    });
+
+    document.getElementById('btn-close-cuentas').addEventListener('click', () => {
+      document.getElementById('subcuentas-manager').classList.add('hidden');
+    });
+
+    async function loadSubcuentas() {
+      const { data, error } = await supabaseClient.from('subcuentas').select('*').order('cuenta').order('created_at');
+      if (!error) {
+        listaSubcuentas = data || [];
+        renderCuentasPrincipales();
+        renderSubcuentasManager();
+      }
     }
 
-    window.addEventListener('online', () => {
-      isOnline = true;
-      updateSyncStatus('🔄 Sincronizando...');
-      syncQueueToSupabase();
+    function renderCuentasPrincipales() {
+      const selectCuenta = document.getElementById('mv-cuenta');
+      const selectImportCuenta = document.getElementById('import-cuenta');
+      
+      const valMain = selectCuenta.value;
+      const valImport = selectImportCuenta.value;
+      
+      selectCuenta.innerHTML = '<option value="">1. Elige una Cuenta...</option>';
+      selectImportCuenta.innerHTML = '<option value="">1. Elige Cuenta de destino...</option>';
+      
+      const cuentasUnicas = [...new Set(listaSubcuentas.map(s => s.cuenta))];
+      cuentasUnicas.forEach(c => {
+        if (!c) return;
+        const opt1 = document.createElement('option'); opt1.value = c; opt1.textContent = c;
+        const opt2 = document.createElement('option'); opt2.value = c; opt2.textContent = c;
+        selectCuenta.appendChild(opt1);
+        selectImportCuenta.appendChild(opt2);
+      });
+      
+      if (valMain) selectCuenta.value = valMain;
+      if (valImport) selectImportCuenta.value = valImport;
+    }
+
+    document.getElementById('mv-cuenta').addEventListener('change', (e) => {
+      updateSubcuentasDropdown(e.target.value, 'mv-subcuenta');
     });
     
-    window.addEventListener('offline', () => {
-      isOnline = false;
-      updateSyncStatus('📴 Modo Offline');
+    document.getElementById('import-cuenta').addEventListener('change', (e) => {
+      updateSubcuentasDropdown(e.target.value, 'import-subcuenta');
     });
 
-    function saveToLocal() {
-      try {
-        localStorage.setItem('qwenlia_movimientos', JSON.stringify(movimientos));
-      } catch (e) {
-        console.warn('No se pudo guardar en localStorage:', e);
-      }
-    }
-
-    function loadFromLocal() {
-      try {
-        const cached = localStorage.getItem('qwenlia_movimientos');
-        if (cached) {
-          movimientos = JSON.parse(cached);
-          renderMovements();
-          updateSummary();
-        }
-      } catch (e) {
-        console.warn('No se pudo cargar desde localStorage:', e);
-      }
-    }
-
-    async function syncQueueToSupabase() {
-      if (!isOnline || !currentUser) return;
+    function updateSubcuentasDropdown(cuentaSeleccionada, targetSelectId, valorPreseleccionado = null) {
+      const selectSubcuenta = document.getElementById(targetSelectId);
+      selectSubcuenta.innerHTML = '<option value="">2. Elige la Subcuenta...</option>';
       
-      if (syncQueue.length === 0) {
-        updateSyncStatus('✅ Sincronizado');
+      if (!cuentaSeleccionada) {
+        selectSubcuenta.disabled = true;
         return;
       }
       
-      updateSyncStatus('🔄 Sincronizando ' + syncQueue.length + ' cambios...');
+      selectSubcuenta.disabled = false;
+      const subcuentasFiltradas = listaSubcuentas.filter(s => s.cuenta === cuentaSeleccionada);
+      
+      subcuentasFiltradas.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.nombre;
+        opt.textContent = `${s.nombre} (${s.terminacion})`;
+        selectSubcuenta.appendChild(opt);
+      });
+
+      if (valorPreseleccionado) {
+        let exists = Array.from(selectSubcuenta.options).some(opt => opt.value === valorPreseleccionado);
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = valorPreseleccionado;
+          opt.textContent = valorPreseleccionado + ' (No en catálogo)';
+          selectSubcuenta.appendChild(opt);
+        }
+        selectSubcuenta.value = valorPreseleccionado;
+      }
+    }
+
+    // LISTA DE CUENTAS: GENERADA 100% CON DOM PARA EVITAR ERRORES DE CARACTERES
+    function renderSubcuentasManager() {
+      const list = document.getElementById('subcuentas-list');
+      list.innerHTML = '';
+
+      const grupos = {};
+      listaSubcuentas.forEach(s => {
+        if (!grupos[s.cuenta]) grupos[s.cuenta] = [];
+        grupos[s.cuenta].push(s);
+      });
+
+      Object.keys(grupos).forEach(cuenta => {
+        const headerDiv = document.createElement('div');
+        headerDiv.style.display = 'flex';
+        headerDiv.style.justifyContent = 'space-between';
+        headerDiv.style.alignItems = 'center';
+        headerDiv.style.marginTop = '15px';
+        headerDiv.style.paddingBottom = '5px';
+        headerDiv.style.borderBottom = '2px solid var(--border)';
+        
+        const titleH4 = document.createElement('h4');
+        titleH4.style.color = 'var(--primary)';
+        titleH4.style.margin = '0';
+        titleH4.textContent = `📁 ${cuenta}`;
+        
+        const btnDeleteCuenta = document.createElement('button');
+        btnDeleteCuenta.type = 'button';
+        btnDeleteCuenta.className = 'btn-icon danger';
+        btnDeleteCuenta.title = 'Eliminar cuenta completa y sus tarjetas';
+        btnDeleteCuenta.style.fontSize = '0.75rem';
+        btnDeleteCuenta.style.padding = '4px 8px';
+        btnDeleteCuenta.textContent = '🗑️ Borrar Cuenta';
+        btnDeleteCuenta.onclick = () => window.deleteCuenta(cuenta);
+
+        headerDiv.appendChild(titleH4);
+        headerDiv.appendChild(btnDeleteCuenta);
+        list.appendChild(headerDiv);
+
+        grupos[cuenta].forEach(s => {
+          const divSub = document.createElement('div');
+          divSub.style.display = 'flex';
+          divSub.style.justifyContent = 'space-between';
+          divSub.style.alignItems = 'center';
+          divSub.style.padding = '8px 0';
+          divSub.style.borderBottom = '1px solid var(--surface-hover)';
+          divSub.style.marginLeft = '15px';
+          
+          const spanInfo = document.createElement('span');
+          spanInfo.innerHTML = `${s.nombre} <small style="color:var(--text-muted)">${s.terminacion}</small>`;
+          
+          const btnDeleteSub = document.createElement('button');
+          btnDeleteSub.type = 'button';
+          btnDeleteSub.className = 'btn-icon danger';
+          btnDeleteSub.textContent = '🗑️';
+          btnDeleteSub.onclick = () => window.deleteSubcuenta(s.id);
+          
+          divSub.appendChild(spanInfo);
+          divSub.appendChild(btnDeleteSub);
+          list.appendChild(divSub);
+        });
+      });
+    }
+
+    document.getElementById('subcuenta-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const c = document.getElementById('sub-cuenta-padre').value.trim();
+      const n = document.getElementById('sub-nombre').value.trim();
+      const t = document.getElementById('sub-terminacion').value.trim();
+      const termFinal = t === "" ? "****" : `*${t}`;
+      
+      const { data, error } = await supabaseClient.from('subcuentas').insert([{
+        user_id: currentUser.id, cuenta: c, nombre: n, terminacion: termFinal
+      }]).select();
+      
+      if (!error) {
+        listaSubcuentas.push(data[0]);
+        renderCuentasPrincipales();
+        renderSubcuentasManager();
+        e.target.reset();
+        showToast('Agregado al catálogo');
+      } else {
+        showToast('Error al agregar', true);
+      }
+    });
+
+    // LÓGICA DE BORRADO DE CUENTA MEJORADA CON TRY/CATCH
+    window.deleteCuenta = async (cuentaName) => {
+      if (!confirm(`¿Estás seguro de eliminar la cuenta "${cuentaName}" y TODAS sus tarjetas?\n\n(Tus movimientos financieros NO se borrarán)`)) return;
       
       try {
-        for (const item of syncQueue) {
-          if (item.action === 'add') {
-            const { error } = await supabaseClient.from('movimientos').insert([{
-              user_id: currentUser.id,
-              fecha: item.data.fecha,
-              concepto: item.data.concepto,
-              monto: item.data.monto,
-              tipo: item.data.tipo,
-              subcuenta: item.data.subcuenta
-            }]);
-            if (error) throw error;
-          } else if (item.action === 'update') {
-            const { error } = await supabaseClient.from('movimientos')
-              .update({
-                fecha: item.data.fecha,
-                concepto: item.data.concepto,
-                monto: item.data.monto,
-                tipo: item.data.tipo,
-                subcuenta: item.data.subcuenta
-              })
-              .eq('id', item.id);
-            if (error) throw error;
-          } else if (item.action === 'delete') {
-            const { error } = await supabaseClient.from('movimientos')
-              .delete()
-              .eq('id', item.id);
-            if (error) throw error;
-          }
-        }
-        syncQueue = [];
-        await loadFromSupabase();
-        updateSyncStatus('✅ Sincronizado');
-      } catch (err) {
-        console.error('Sync error:', err);
-        updateSyncStatus('⚠️ Error de sync. Reintentando...');
-      }
-    }
-
-    async function loadMovements() {
-      if (isOnline) {
-        await loadFromSupabase();
-      } else {
-        loadFromLocal();
-        updateSyncStatus('📴 Cargando desde caché');
-      }
-    }
-
-    async function loadFromSupabase() {
-      try {
-        updateSyncStatus('🔄 Descargando datos...');
-        
-        const { data, error } = await supabaseClient
-          .from('movimientos')
-          .select('*')
-          .order('fecha', { ascending: false });
+        const { error } = await supabaseClient.from('subcuentas')
+          .delete()
+          .eq('cuenta', cuentaName)
+          .eq('user_id', currentUser.id);
         
         if (error) throw error;
         
+        // Actualizar variables y renderizar visuales
+        listaSubcuentas = listaSubcuentas.filter(s => s.cuenta !== cuentaName);
+        renderCuentasPrincipales();
+        renderSubcuentasManager();
+        
+        // Limpiar completamente los selectores en los dos formularios
+        document.getElementById('mv-cuenta').value = '';
+        updateSubcuentasDropdown('', 'mv-subcuenta');
+        
+        document.getElementById('import-cuenta').value = '';
+        updateSubcuentasDropdown('', 'import-subcuenta');
+        
+        showToast('Cuenta eliminada del catálogo');
+      } catch (err) {
+        console.error('Error borrando cuenta:', err);
+        showToast('Error al eliminar la cuenta', true);
+      }
+    };
+
+    window.deleteSubcuenta = async (id) => {
+      if (!confirm('¿Eliminar esta subcuenta del catálogo?\n\n(Tus movimientos financieros NO se borrarán)')) return;
+      
+      try {
+        const { error } = await supabaseClient.from('subcuentas')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', currentUser.id);
+          
+        if (error) throw error;
+        
+        listaSubcuentas = listaSubcuentas.filter(s => s.id !== id);
+        renderCuentasPrincipales();
+        renderSubcuentasManager();
+        
+        // Actualizar si el formulario tenía seleccionada esta cuenta
+        updateSubcuentasDropdown(document.getElementById('mv-cuenta').value, 'mv-subcuenta');
+        updateSubcuentasDropdown(document.getElementById('import-cuenta').value, 'import-subcuenta');
+        
+        showToast('Subcuenta eliminada');
+      } catch (err) {
+        console.error('Error borrando subcuenta:', err);
+        showToast('Error al eliminar la subcuenta', true);
+      }
+    };
+
+    // MOVIMIENTOS
+    async function loadMovements() {
+      const { data, error } = await supabaseClient.from('movimientos').select('*').order('fecha', { ascending: false });
+      if (!error) {
         movimientos = data || [];
-        saveToLocal();
         renderMovements();
         updateSummary();
-        updateSyncStatus('✅ Sincronizado');
-      } catch (err) {
-        console.error('Fetch error:', err);
-        loadFromLocal();
-        updateSyncStatus('⚠️ Error de red. Usando caché local.');
       }
     }
 
-    document.getElementById('btn-sync').addEventListener('click', () => {
-      if (isOnline) {
-        syncQueueToSupabase();
-      } else {
-        showToast('Sin conexión. Activa internet para sincronizar.', true);
-      }
-    });
-
     document.getElementById('movement-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      const fecha = document.getElementById('mv-fecha').value;
-      const concepto = document.getElementById('mv-concepto').value.trim();
-      const monto = parseFloat(document.getElementById('mv-monto').value);
-      const tipo = document.getElementById('mv-tipo').value;
-      const subcuenta = document.getElementById('mv-subcuenta').value.trim();
-
-      if (!fecha || !concepto || isNaN(monto)) {
-        showToast('Por favor completa todos los campos', true);
-        return;
-      }
-
-      const payload = { fecha, concepto, monto, tipo, subcuenta };
+      const payload = {
+        fecha: document.getElementById('mv-fecha').value,
+        cuenta: document.getElementById('mv-cuenta').value,
+        subcuenta: document.getElementById('mv-subcuenta').value,
+        concepto: document.getElementById('mv-concepto').value.trim(),
+        monto: Math.abs(parseFloat(document.getElementById('mv-monto').value)),
+        tipo: document.getElementById('mv-tipo').value
+      };
 
       if (editingId) {
-        movimientos = movimientos.map(m => 
-          m.id === editingId ? { ...m, ...payload } : m
-        );
-        syncQueue.push({ action: 'update', id: editingId, data: payload });
-        editingId = null;
-        document.getElementById('btn-cancel-edit').classList.add('hidden');
-        document.getElementById('btn-save-mv').textContent = '💾 Guardar Movimiento';
+        const { error } = await supabaseClient.from('movimientos').update(payload).eq('id', editingId);
+        if (!error) {
+          editingId = null;
+          document.getElementById('btn-cancel-edit').classList.add('hidden');
+          document.getElementById('btn-save-mv').textContent = '💾 Guardar Movimiento';
+        }
       } else {
-        const tempId = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        const newMov = {
-          id: tempId,
-          user_id: currentUser?.id || 'unknown',
-          ...payload,
-          created_at: new Date().toISOString()
-        };
-        movimientos.unshift(newMov);
-        syncQueue.push({ action: 'add', data: payload });
+        await supabaseClient.from('movimientos').insert([{ ...payload, user_id: currentUser.id }]);
       }
-
-      saveToLocal();
-      renderMovements();
-      updateSummary();
+      loadMovements();
       e.target.reset();
       document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
-      
-      if (isOnline) syncQueueToSupabase();
-      showToast('Movimiento registrado');
+      document.getElementById('mv-subcuenta').innerHTML = '<option value="">2. Elige la Subcuenta...</option>';
+      document.getElementById('mv-subcuenta').disabled = true;
     });
 
-    window.editMovement = function(id) {
-      const mv = movimientos.find(m => m.id === id);
-      if (!mv) return;
-      
+    window.editMovement = (id) => {
+      const m = movimientos.find(x => x.id === id);
       editingId = id;
-      document.getElementById('mv-fecha').value = mv.fecha;
-      document.getElementById('mv-concepto').value = mv.concepto;
-      document.getElementById('mv-monto').value = mv.monto;
-      document.getElementById('mv-tipo').value = mv.tipo;
-      document.getElementById('mv-subcuenta').value = mv.subcuenta;
+      document.getElementById('mv-fecha').value = m.fecha;
+      document.getElementById('mv-concepto').value = m.concepto;
+      document.getElementById('mv-monto').value = m.monto;
+      document.getElementById('mv-tipo').value = m.tipo;
+      
+      const selectCuenta = document.getElementById('mv-cuenta');
+      let cuentaExists = Array.from(selectCuenta.options).some(opt => opt.value === m.cuenta);
+      if (!cuentaExists && m.cuenta) {
+        const opt = document.createElement('option');
+        opt.value = m.cuenta;
+        opt.textContent = m.cuenta;
+        selectCuenta.appendChild(opt);
+      }
+      selectCuenta.value = m.cuenta || '';
+      updateSubcuentasDropdown(m.cuenta, 'mv-subcuenta', m.subcuenta);
       
       document.getElementById('btn-save-mv').textContent = '✏️ Actualizar';
       document.getElementById('btn-cancel-edit').classList.remove('hidden');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0,0);
     };
 
-    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
-      editingId = null;
-      document.getElementById('movement-form').reset();
-      document.getElementById('btn-save-mv').textContent = '💾 Guardar Movimiento';
-      document.getElementById('btn-cancel-edit').classList.add('hidden');
-      document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
-    });
-
-    window.deleteMovement = async function(id) {
-      if (!confirm('¿Eliminar este movimiento permanentemente?')) return;
-      
-      movimientos = movimientos.filter(m => m.id !== id);
-      syncQueue.push({ action: 'delete', id });
-      
-      saveToLocal();
-      renderMovements();
-      updateSummary();
-      
-      if (isOnline) syncQueueToSupabase();
-      showToast('Movimiento eliminado');
+    window.deleteMovement = async (id) => {
+      if (confirm('¿Eliminar este movimiento de la base de datos?')) {
+        await supabaseClient.from('movimientos').delete().eq('id', id);
+        loadMovements();
+      }
     };
 
     function renderMovements() {
       const container = document.getElementById('movements-container');
       container.innerHTML = '';
       
-      if (movimientos.length === 0) {
-        container.innerHTML = '<p style="text-align:center; padding: 20px; color: var(--text-muted);">No hay movimientos registrados.</p>';
-        return;
-      }
-
       const groups = {};
       movimientos.forEach(m => {
-        const key = m.subcuenta || 'Sin categoría';
-        if (!groups[key]) groups[key] = [];
-        groups[key].push(m);
+        const c = m.cuenta || 'Sin Cuenta';
+        const sc = m.subcuenta || 'Sin Subcuenta';
+        const key = `${c} ➔ ${sc}`;
+        if (!groups[key]) groups[key] = { cuenta: c, subcuenta: sc, items: [] };
+        groups[key].items.push(m);
       });
 
-      Object.keys(groups).sort().forEach(sub => {
+      Object.keys(groups).sort().forEach(key => {
+        const groupData = groups[key];
         const groupDiv = document.createElement('div');
         groupDiv.className = 'subaccount-group';
         
         const header = document.createElement('div');
         header.className = 'group-header';
-        header.innerHTML = `<span>📂 ${sub} <small style="color:var(--text-muted)">(${groups[sub].length})</small></span>`;
         
+        const titleSpan = document.createElement('span');
+        titleSpan.innerHTML = `📂 <b>${groupData.cuenta}</b> <span style="color:var(--text-muted)">❯ ${groupData.subcuenta}</span> <small style="color:var(--text-muted)">(${groupData.items.length})</small>`;
+        
+        const exportBtn = document.createElement('button');
+        exportBtn.className = 'btn-icon secondary';
+        exportBtn.innerHTML = '📊 Exportar movimientos';
+        exportBtn.style.fontSize = '0.75rem';
+        exportBtn.style.padding = '4px 8px';
+        exportBtn.onclick = (e) => {
+          e.stopPropagation();
+          const safeName = key.replace(/[^a-zA-Z0-9]/g, '_');
+          generateExcel(groupData.items, `Movimientos_${safeName}_${new Date().toISOString().split('T')[0]}.xls`);
+        };
+        
+        header.appendChild(titleSpan);
+        header.appendChild(exportBtn);
+
         const content = document.createElement('div');
         content.className = 'group-content';
+        content.innerHTML = `
+          <div class="table-wrapper"><table>
+            <thead><tr><th>Fecha</th><th>Concepto</th><th>Monto</th><th>Acciones</th></tr></thead>
+            <tbody>${groupData.items.map(m => `<tr>
+              <td>${formatDate(m.fecha)}</td><td>${m.concepto}</td>
+              <td style="color:${m.tipo === 'ingreso' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">
+                ${m.tipo === 'ingreso' ? '+' : '-'}${formatCurrency(m.monto)}</td>
+              <td class="actions"><button type="button" class="btn-icon secondary" onclick="editMovement('${m.id}')">✏️</button>
+                                  <button type="button" class="btn-icon danger" onclick="deleteMovement('${m.id}')">🗑️</button></td>
+            </tr>`).join('')}</tbody></table></div>`;
         
         header.addEventListener('click', () => content.classList.toggle('collapsed'));
-        
-        const table = document.createElement('div');
-        table.className = 'table-wrapper';
-        table.innerHTML = `
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Concepto</th>
-                <th>Monto</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${groups[sub].map(m => `
-                <tr>
-                  <td>${formatDate(m.fecha)}</td>
-                  <td>${m.concepto}</td>
-                  <td style="color: ${m.tipo === 'ingreso' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">
-                    ${m.tipo === 'ingreso' ? '+' : '-'}${formatCurrency(m.monto)}
-                  </td>
-                  <td class="actions">
-                    <button class="btn-icon secondary" onclick="editMovement('${m.id}')">✏️</button>
-                    <button class="btn-icon danger" onclick="deleteMovement('${m.id}')">🗑️</button>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
-        
-        content.appendChild(table);
+
         groupDiv.appendChild(header);
         groupDiv.appendChild(content);
         container.appendChild(groupDiv);
@@ -563,104 +654,143 @@
     }
 
     function updateSummary() {
-      const ingresos = movimientos
-        .filter(m => m.tipo === 'ingreso')
-        .reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
-      
-      const egresos = movimientos
-        .filter(m => m.tipo === 'egreso')
-        .reduce((a, b) => a + (parseFloat(b.monto) || 0), 0);
-      
-      const saldo = ingresos - egresos;
-      
-      document.getElementById('total-ingresos').textContent = formatCurrency(ingresos);
-      document.getElementById('total-egresos').textContent = formatCurrency(egresos);
-      document.getElementById('saldo-total').textContent = formatCurrency(saldo);
-      document.getElementById('neto').textContent = formatCurrency(saldo);
+      const ing = movimientos.filter(m => m.tipo === 'ingreso').reduce((a, b) => a + b.monto, 0);
+      const egr = movimientos.filter(m => m.tipo === 'egreso').reduce((a, b) => a + b.monto, 0);
+      document.getElementById('total-ingresos').textContent = formatCurrency(ing);
+      document.getElementById('total-egresos').textContent = formatCurrency(egr);
+      document.getElementById('saldo-total').textContent = formatCurrency(ing - egr);
+      document.getElementById('neto').textContent = formatCurrency(ing - egr);
     }
 
-    document.getElementById('btn-import').addEventListener('click', () => {
-      document.getElementById('csv-import').click();
+    function generateExcel(dataToExport, filename) {
+      if (dataToExport.length === 0) return showToast('No hay datos para exportar', true);
+
+      const tableStyle = `
+        <style>
+          table { border-collapse: collapse; font-family: sans-serif; }
+          th { background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; font-weight: bold; }
+          td { border: 1px solid #cbd5e1; padding: 10px; }
+          .ingreso { color: #10b981; font-weight: bold; }
+          .egreso { color: #ef4444; font-weight: bold; }
+        <\\/style>
+      `.replace(/\\/g, '');
+
+      let html = '<html><head><meta charset="UTF-8">' + tableStyle + '<\\/head><body>'.replace(/\\/g, '');
+      html += '<table><thead><tr><th>Fecha<\\/th><th>Concepto<\\/th><th>Monto<\\/th><th>Tipo<\\/th><th>Cuenta<\\/th><th>Subcuenta<\\/th><\\/tr><\\/thead><tbody>'.replace(/\\/g, '');
+
+      dataToExport.forEach(m => {
+        const colorClass = m.tipo === 'ingreso' ? 'ingreso' : 'egreso';
+        const tipoText = m.tipo === 'ingreso' ? 'Ganancia' : 'Gasto';
+        html += `<tr>
+          <td>${formatDate(m.fecha)}<\\/td>
+          <td>${m.concepto}<\\/td>
+          <td>${m.monto.toFixed(2)}<\\/td>
+          <td class="${colorClass}">${tipoText}<\\/td>
+          <td>${m.cuenta || '-'}<\\/td>
+          <td>${m.subcuenta || '-'}<\\/td>
+        <\\/tr>`.replace(/\\/g, '');
+      });
+
+      html += '<\\/tbody><\\/table><\\/body><\\/html>'.replace(/\\/g, '');
+
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('📊 Archivo exportado exitosamente');
+    }
+
+    document.getElementById('btn-export').addEventListener('click', () => {
+      generateExcel(movimientos, `Todos_los_movimientos_${new Date().toISOString().split('T')[0]}.xls`);
     });
 
-    document.getElementById('csv-import').addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      
+    document.getElementById('btn-toggle-import').addEventListener('click', () => {
+      document.getElementById('import-panel').classList.toggle('hidden');
+    });
+
+    document.getElementById('btn-close-import').addEventListener('click', () => {
+      document.getElementById('import-panel').classList.add('hidden');
+    });
+
+    document.getElementById('btn-process-import').addEventListener('click', async () => {
+      const cuentaDestino = document.getElementById('import-cuenta').value;
+      const subcuentaDestino = document.getElementById('import-subcuenta').value;
+      const fileInput = document.getElementById('csv-import-file');
+
+      if (!cuentaDestino || !subcuentaDestino) {
+        showToast('Debes elegir la Cuenta y Subcuenta de destino', true);
+        return;
+      }
+
+      if (!fileInput.files.length) {
+        showToast('Selecciona un archivo CSV', true);
+        return;
+      }
+
       try {
-        const text = await file.text();
+        const text = await fileInput.files[0].text();
         const lines = text.trim().split(/\r?\n/);
         let added = 0;
         
-        lines.forEach(line => {
-          const row = line.split(/[;,]/);
-          if (row.length < 3) return;
+        for (let i = 1; i < lines.length; i++) {
+          const row = lines[i].split(/[;,]/);
+          if (row.length < 4) continue;
           
-          const [fechaRaw, concepto, montoRaw, tipoRaw = 'egreso', subcuentaRaw = 'Importado'] = row;
-          const monto = parseFloat(montoRaw.replace(/[^0-9.-]/g, ''));
-          if (isNaN(monto)) return;
+          const [fechaRaw, concepto, incomeRaw, expenseRaw] = row;
+          
+          const income = Math.abs(parseFloat((incomeRaw || '').replace(/[^0-9.-]/g, ''))) || 0;
+          const expense = Math.abs(parseFloat((expenseRaw || '').replace(/[^0-9.-]/g, ''))) || 0;
+          
+          let monto = 0;
+          let tipo = '';
+
+          if (income > 0) {
+            monto = income;
+            tipo = 'ingreso';
+          } else if (expense > 0) {
+            monto = expense;
+            tipo = 'egreso';
+          } else {
+            continue; 
+          }
           
           let fecha = fechaRaw.trim();
           if (fecha.includes('/')) {
-            const [d, m, y] = fecha.split('/');
-            fecha = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+            const parts = fecha.split('/');
+            if (parts[2].length === 4) {
+              fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+            } else if (parts[0].length === 4) {
+              fecha = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+            }
           }
           
-          const tempId = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-          const tipo = tipoRaw.toLowerCase().includes('ing') ? 'ingreso' : 'egreso';
-          
-          movimientos.unshift({
-            id: tempId,
-            user_id: currentUser?.id || 'unknown',
+          const payload = {
+            user_id: currentUser.id,
             fecha,
             concepto: concepto.trim(),
             monto,
             tipo,
-            subcuenta: subcuentaRaw.trim(),
-            created_at: new Date().toISOString()
-          });
-          
-          syncQueue.push({
-            action: 'add',
-            data: { fecha, concepto: concepto.trim(), monto, tipo, subcuenta: subcuentaRaw.trim() }
-          });
-          added++;
-        });
-        
-        saveToLocal();
-        renderMovements();
-        updateSummary();
-        if (isOnline) syncQueueToSupabase();
-        showToast(`✅ ${added} movimientos importados`);
-      } catch (err) {
-        showToast('Error al importar CSV', true);
-      }
-      e.target.value = '';
-    });
+            cuenta: cuentaDestino,
+            subcuenta: subcuentaDestino
+          };
 
-    document.getElementById('btn-export').addEventListener('click', () => {
-      if (movimientos.length === 0) {
-        showToast('⚠️ No hay datos para exportar', true);
-        return;
+          await supabaseClient.from('movimientos').insert([payload]);
+          added++;
+        }
+        
+        loadMovements();
+        showToast(`✅ ${added} movimientos importados a ${subcuentaDestino}`);
+        
+        document.getElementById('import-panel').classList.add('hidden');
+        fileInput.value = '';
+        
+      } catch (err) {
+        showToast('Error al leer el archivo CSV', true);
+        console.error(err);
       }
-      const bom = '\uFEFF';
-      const sep = ';';
-      const header = ['Fecha', 'Concepto', 'Monto', 'Tipo', 'Subcuenta'].join(sep);
-      const rows = movimientos.map(m => [
-        m.fecha,
-        `"${(m.concepto || '').replace(/"/g, '""')}"`,
-        (m.monto || 0).toFixed(2),
-        m.tipo,
-        `"${(m.subcuenta || '').replace(/"/g, '""')}"`
-      ].join(sep));
-      const csvContent = bom + header + '\n' + rows.join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Export_Finanzas_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
     });
 
     document.addEventListener('DOMContentLoaded', () => {
