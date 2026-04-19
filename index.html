@@ -201,7 +201,7 @@
         if (!email || password.length < 6) return showAuthMsg('Contraseña mínima 6 caracteres');
         
         // ✅ CORRECCIÓN CLAVE:  { session }
-        const {  { session }, error } = await supabase.auth.signUp({ email, password });
+        const { data: { session }, error } = await supabase.auth.signUp({ email, password });
         if (error) return showAuthMsg(error.message);
         showAuthMsg('✅ Cuenta creada. Revisa tu correo para confirmar.');
         setTimeout(() => showLogin(), 2000);
@@ -233,7 +233,7 @@
 
     // Check session on load
     // ✅ CORRECCIÓN CLAVE:  { session }
-    supabase.auth.getSession().then(({  { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) handleAuthSuccess(session.user);
     });
 
