@@ -1,26 +1,25 @@
 {
   "name": "QwenLIA Finanzas",
   "short_name": "QwenLIA",
-  "start_url": "/qwenlia/",
+  "description": "Control financiero inteligente",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0d0d1a",
   "theme_color": "#e8a020",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/qwenlia/apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png"
-    },
-    {
-      "src": "/qwenlia/android-chrome-192x192.png",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/qwenlia/android-chrome-512x512.png",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
