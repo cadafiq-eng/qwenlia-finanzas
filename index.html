@@ -350,7 +350,7 @@
             const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
             const btn = document.createElement('button');
             btn.className = `sub-btn ${activeSub === sub ? 'active' : ''}`;
-            btn.innerHTML = `${sub} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameSubaccount('${sub}')">✏️</span>`;
+            btn.innerHTML = `${sub} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameSubaccount('${sub}')">✏️</span><span class="rename-btn" onclick="event.stopPropagation(); deleteSubaccount('${sub}')" style="color:var(--red)">🗑️</span>`;
             btn.onclick = () => { activeSub = sub; renderSubAccounts(); renderLedger(); };
             bar.appendChild(btn);
         });
@@ -491,6 +491,19 @@
         if(supabaseConnected && currentUser) await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', oldSub);
         renderSubAccounts(); renderLedger();
         localStorage.setItem('qwenlia_data', JSON.stringify(db));
+    }
+
+    window.deleteSubaccount = async function(sub) {
+        if (!active || !db[active]) return;
+        const movs = db[active].movimientos.filter(m => m.subcuenta === sub);
+        if (!confirm(`¿Eliminar la subcuenta "${sub}" y sus ${movs.length} movimiento(s)? Esta acción no se puede deshacer.`)) return;
+        if (supabaseConnected && currentUser) {
+            await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', sub);
+        }
+        db[active].movimientos = db[active].movimientos.filter(m => m.subcuenta !== sub);
+        if (activeSub === sub) activeSub = null;
+        localStorage.setItem('qwenlia_data', JSON.stringify(db));
+        renderSubAccounts(); renderLedger();
     }
 
     // === EXPORT TO EXCEL ===
