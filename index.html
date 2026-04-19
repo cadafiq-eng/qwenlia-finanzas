@@ -190,7 +190,7 @@
         if (!email || !password) return showAuthMsg('Completa ambos campos');
         
         // ✅ CORRECCIÓN CLAVE:  { session }
-        const {  { session }, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: { session }, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) return showAuthMsg(error.message);
         handleAuthSuccess(session.user);
     }
