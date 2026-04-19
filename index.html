@@ -1,802 +1,523 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QwenLIA Finanzas</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --bg: #0f1115; --surface: #1a1d24; --surface-hover: #252830;
-      --primary: #3b82f6; --primary-hover: #2563eb;
-      --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
-      --text: #e2e8f0; --text-muted: #94a3b8; --border: #334155;
-      --radius: 10px; --shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: var(--bg); color: var(--text); line-height: 1.5;
-      min-height: 100vh; padding-bottom: 40px;
-    }
-    .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
-    header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 20px;
-    }
-    .logo { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
-    .logo span { color: var(--text-muted); font-weight: 400; font-size: 0.9rem; }
-    .auth-box, .dashboard {
-      background: var(--surface); padding: 20px;
-      border-radius: var(--radius); box-shadow: var(--shadow);
-    }
-    .hidden { display: none !important; }
-    input, select, button {
-      width: 100%; padding: 12px; margin-bottom: 10px;
-      background: var(--bg); border: 1px solid var(--border);
-      color: var(--text); border-radius: 8px; font-size: 14px;
-      transition: all 0.2s;
-    }
-    input:focus, select:focus { outline: none; border-color: var(--primary); }
-    button {
-      cursor: pointer; font-weight: 600;
-      background: var(--primary); color: white; border: none;
-    }
-    button:hover { background: var(--primary-hover); }
-    button.secondary {
-      background: transparent; border: 1px solid var(--border);
-      color: var(--text-muted);
-    }
-    button.secondary:hover { background: var(--surface-hover); }
-    button.danger { background: var(--danger); }
-    button.danger:hover { background: #dc2626; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-    .summary {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 15px; margin: 20px 0;
-    }
-    .card {
-      background: var(--surface); padding: 15px;
-      border-radius: var(--radius); text-align: center;
-    }
-    .card h3 { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; }
-    .card p { font-size: 1.5rem; font-weight: 700; }
-    .card.income p { color: var(--success); }
-    .card.expense p { color: var(--danger); }
-    .card.net p { color: var(--primary); }
-    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
-    .controls button, .controls input, .controls select {
-      width: auto; margin: 0; flex: 1; min-width: 120px;
-    }
-    .table-wrapper {
-      overflow-x: auto; margin-top: 10px;
-      border-radius: var(--radius); border: 1px solid var(--border);
-    }
-    table { width: 100%; border-collapse: collapse; min-width: 600px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    th { background: var(--surface-hover); color: var(--text-muted); font-weight: 600; }
-    tr:hover { background: var(--surface-hover); }
-    .actions { display: flex; gap: 8px; }
-    .btn-icon { padding: 6px 8px; font-size: 14px; width: auto; }
-    .subaccount-group { margin-bottom: 15px; }
-    .group-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 10px 15px; background: var(--surface-hover);
-      cursor: pointer; border-radius: var(--radius) var(--radius) 0 0;
-      border: 1px solid var(--border); border-bottom: none;
-    }
-    .group-content {
-      border: 1px solid var(--border);
-      border-radius: 0 0 var(--radius) var(--radius);
-    }
-    .group-content.collapsed { display: none; }
-    .status {
-      font-size: 0.8rem; color: var(--text-muted);
-      text-align: right; margin-bottom: 10px;
-    }
-    .toast {
-      position: fixed; bottom: 20px; right: 20px;
-      background: var(--success); color: white;
-      padding: 12px 20px; border-radius: var(--radius);
-      box-shadow: var(--shadow); transform: translateY(100px);
-      transition: transform 0.3s; z-index: 1000;
-    }
-    .toast.show { transform: translateY(0); }
-    .toast.error { background: var(--danger); }
-    @media (max-width: 768px) {
-      .grid-2, .grid-3, .controls { grid-template-columns: 1fr; }
-      .controls button { width: 100%; }
-      .summary { grid-template-columns: 1fr; }
-      table { font-size: 0.9rem; }
-      th, td { padding: 10px 8px; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QwenLIA Finanzas</title>
+    
+    <!-- Favicon y configuración PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#e8a020">
+
+    <style>
+        :root {
+            --bg: #f4f4f9; --text: #333; --accent: #e8a020;
+            --card: #ffffff; --line: #ddd; --green: #27ae60; --red: #c0392b;
+        }
+        body.dark {
+            --bg: #0d0d1a; --text: #e8e4da; --accent: #e8a020;
+            --card: #1a1a2e; --line: #2e2e42; --green: #4ade80; --red: #f87171;
+        }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
+        .container { max-width: 900px; margin: 0 auto; }
+        
+        .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .theme-btn { cursor: pointer; font-size: 1.2rem; background: none; border: none; color: var(--accent); }
+
+        .account-bar { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 5px; }
+        .sub-bar { display: none; flex-wrap: nowrap; gap: 6px; overflow-x: auto; padding-bottom: 10px; border-bottom: 1px solid var(--line); margin-bottom: 15px; transition: all 0.2s ease; }
+        .sub-bar.visible { display: flex; }
+        .btn-toggle-sub { 
+            background: var(--card); border: 1px solid var(--line); 
+            padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; 
+            cursor: pointer; color: var(--text); margin-bottom: 10px; 
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        
+        .acct-btn { padding: 8px 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-weight: 600; font-size: 0.9rem; display:flex; align-items:center; gap:6px; }
+        .acct-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .rename-btn { font-size:0.8rem; opacity:0.7; margin-left:4px; cursor: pointer; }
+        
+        .sub-btn { padding: 6px 10px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-size: 0.8rem; opacity: 0.8; display:flex; align-items:center; gap:4px; }
+        .sub-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); opacity: 1; }
+
+        .summary { background: var(--card); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid var(--line); }
+        .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .kpi-val { font-size: 1rem; font-weight: bold; font-family: monospace; }
+
+        .form-box { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: center; }
+        input { flex: 1; min-width: 130px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+        .btn { padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-save { background: var(--green); color: white; flex: 2; }
+        .btn-import { background: var(--accent); color: white; text-align: center; cursor: pointer; flex: 1; }
+        .btn-export { background: #3498db; color: white; flex: 1; }
+
+        .table-wrap { background: var(--card); border-radius: 12px; overflow-x: auto; border: 1px solid var(--line); }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--line); }
+        th { background: rgba(0,0,0,0.05); font-size: 0.75rem; text-transform: uppercase; color: #888; cursor: pointer; }
+        .tag-sub { font-size: 0.7rem; background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: bold; }
+
+        @media (max-width: 600px) {
+            .sub-btn { padding: 5px 8px; font-size: 0.75rem; }
+            .sub-bar::-webkit-scrollbar { display: none; }
+            .btn-toggle-sub { font-size: 0.8rem; padding: 5px 10px; }
+        }
+
+        /* Auth UI */
+        #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
+        #app-screen { display: none; }
+        .auth-card { background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--line); max-width: 400px; width: 100%; }
+        .auth-title { font-size: 1.5rem; margin-bottom: 20px; color: var(--accent); }
+        .auth-input { width: 100%; margin-bottom: 15px; }
+        .auth-btn { width: 100%; margin-bottom: 10px; }
+        .auth-btn.secondary { background: var(--line); color: var(--text); }
+        .logout-btn { background: var(--red); color: white; font-size: 0.8rem; padding: 5px 10px; }
+    </style>
 </head>
-<body>
-  <div class="container">
-    <header>
-      <div class="logo">QwenLIA <span>Finanzas</span></div>
-      <div id="user-info" class="hidden">
-        <span id="user-email" style="margin-right: 10px; color: var(--text-muted);"></span>
-        <button id="btn-logout" class="secondary btn-icon">Cerrar Sesión 🌗</button>
-      </div>
-    </header>
+<body class="dark">
 
-    <div id="auth-section" class="auth-box">
-      <h2 style="margin-bottom: 15px; text-align: center;">Control financiero inteligente</h2>
-      <form id="auth-form">
-        <input type="email" id="auth-email" placeholder="Correo electrónico" required>
-        <input type="password" id="auth-password" placeholder="Contraseña (mín. 6 caracteres)" required minlength="6">
-        <div class="grid-2">
-          <button type="submit" id="btn-login">Iniciar Sesión</button>
-          <button type="button" id="btn-signup" class="secondary">Crear Cuenta</button>
-        </div>
-        <p id="auth-msg" style="text-align: center; margin-top: 10px; font-size: 0.9rem; color: var(--warning); min-height: 1.2em;"></p>
-      </form>
-    </div>
-
-    <div id="dashboard-section" class="dashboard hidden">
-      <div class="status" id="sync-status">🔄 Conectando...</div>
-      
-      <div class="summary">
-        <div class="card"><h3>SALDO TOTAL</h3><p id="saldo-total">$0.00</p></div>
-        <div class="card income"><h3>INGRESOS</h3><p id="total-ingresos">$0.00</p></div>
-        <div class="card expense"><h3>EGRESOS</h3><p id="total-egresos">$0.00</p></div>
-        <div class="card net"><h3>NETO</h3><p id="neto">$0.00</p></div>
-      </div>
-
-      <div id="subcuentas-manager" class="dashboard hidden" style="margin-bottom: 20px; border: 1px dashed var(--border);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-          <h3>💳 Gestionar Cuentas y Tarjetas</h3>
-          <button type="button" class="btn-icon secondary" id="btn-close-cuentas">❌ Cerrar</button>
-        </div>
-        <form id="subcuenta-form" class="grid-3">
-          <input type="text" id="sub-cuenta-padre" placeholder="Cuenta (ej. Casa, Trabajo)" required>
-          <input type="text" id="sub-nombre" placeholder="Subcuenta (ej. BBVA)" required>
-          <input type="text" id="sub-terminacion" placeholder="Últimos 4 dígitos" maxlength="4" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-          <button type="submit" style="grid-column: 1 / -1;">➕ Agregar a mi catálogo</button>
-        </form>
-        <div id="subcuentas-list" style="margin-top: 15px;"></div>
-      </div>
-
-      <div id="import-panel" class="dashboard hidden" style="margin-bottom: 20px; border: 1px dashed var(--primary); background: var(--surface-hover);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-          <h3>📂 Importar Movimientos</h3>
-          <button type="button" class="btn-icon secondary" id="btn-close-import">❌</button>
-        </div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;">El CSV debe tener este orden: <b>date, note, income, expense</b></p>
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+    <div class="auth-card">
+        <h2 class="auth-title">Qwen<span style="color:var(--accent)">LIA</span></h2>
+        <p style="margin-bottom:20px; color:#888;">Control financiero inteligente</p>
         
-        <div class="grid-3" style="align-items: center;">
-          <select id="import-cuenta" required>
-            <option value="">1. Elige Cuenta de destino...</option>
-          </select>
-          <select id="import-subcuenta" required disabled>
-            <option value="">2. Elige Subcuenta...</option>
-          </select>
-          <input type="file" id="csv-import-file" accept=".csv" style="margin-bottom:0;">
+        <div id="login-form">
+            <input type="email" id="auth-email" class="auth-input" placeholder="Correo electrónico">
+            <input type="password" id="auth-password" class="auth-input" placeholder="Contraseña">
+            <button class="btn auth-btn" onclick="login()">Iniciar Sesión</button>
+            <button class="btn auth-btn secondary" onclick="showSignup()">Crear Cuenta</button>
         </div>
-        <button type="button" id="btn-process-import" style="margin-top: 15px;">🚀 Procesar Importación</button>
-      </div>
 
-      <form id="movement-form" style="margin-bottom: 20px;">
-        <div class="grid-3">
-          <input type="date" id="mv-fecha" required>
-          <select id="mv-cuenta" required>
-            <option value="">1. Elige una Cuenta...</option>
-          </select>
-          <div style="display: flex; gap: 5px;">
-            <select id="mv-subcuenta" required disabled>
-              <option value="">2. Elige la Subcuenta...</option>
-            </select>
-            <button type="button" id="btn-toggle-cuentas" class="secondary" style="width: auto;" title="Gestionar cuentas">⚙️</button>
-          </div>
+        <div id="signup-form" style="display:none;">
+            <input type="email" id="signup-email" class="auth-input" placeholder="Correo electrónico">
+            <input type="password" id="signup-password" class="auth-input" placeholder="Contraseña (mín. 6 caracteres)">
+            <button class="btn auth-btn" onclick="signup()">Registrarse</button>
+            <button class="btn auth-btn secondary" onclick="showLogin()">Ya tengo cuenta</button>
         </div>
-        <div class="grid-2">
-          <input type="text" id="mv-concepto" placeholder="Concepto" required>
-          <input type="number" id="mv-monto" step="0.01" min="0" placeholder="Monto" required>
-        </div>
-        <select id="mv-tipo" required>
-          <option value="ingreso">📈 Ingreso</option>
-          <option value="egreso">📉 Egreso</option>
-        </select>
-        <button type="submit" id="btn-save-mv">💾 Guardar Movimiento</button>
-        <button type="button" id="btn-cancel-edit" class="secondary hidden" style="margin-top: -10px; margin-bottom: 10px;">❌ Cancelar Edición</button>
-      </form>
-
-      <div class="controls">
-        <button id="btn-toggle-import" class="secondary">📂 Importar CSV</button>
-        <button id="btn-export" class="secondary">📊 Exportar todos los movimientos</button>
-        <button id="btn-sync" class="secondary">🔄 Forzar Sync</button>
-      </div>
-
-      <div id="movements-container"></div>
+        <p id="auth-msg" style="color:var(--red); margin-top:10px; font-size:0.9rem;"></p>
     </div>
-  </div>
+</div>
 
-  <div id="toast" class="toast">Operación exitosa</div>
+<!-- APP SCREEN -->
+<div id="app-screen" class="container">
+    <div class="nav">
+        <h2 style="margin:0;">Qwen<span style="color:var(--accent)">LIA</span></h2>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <span id="user-email" style="font-size:0.8rem; color:#888;"></span>
+            <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+            <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+        </div>
+    </div>
 
-  <script>
-    const SUPABASE_URL = 'https://nlyobscmahatxiiikafu.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5seW9ic2NtYWhhdHhpaWlrYWZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyMTk5OTksImV4cCI6MjA5MTc5NTk5OX0.9tbTFVk-hh1XckNRoq0RxmkpZ8I8jye7jtV5guT_kA4';
+    <div class="account-bar" id="account-bar"></div>
+    <button class="btn-toggle-sub" onclick="toggleSubBar()">📂 Subcuentas <span id="sub-arrow">▼</span></button>
+    <div class="sub-bar" id="sub-bar"></div>
+
+    <div style="margin-bottom: 15px; display:flex; gap:10px;">
+        <button class="btn" style="background:var(--line); color:var(--text);" onclick="addAccount()">+ Nueva Categoría</button>
+        <button class="btn" style="background:#fcc; color:red; display:none;" id="btn-del" onclick="deleteAccount()">Eliminar Cuenta</button>
+    </div>
+
+    <div class="summary" id="summary-view" style="display:none">
+        <small style="color:#888;" id="saldo-label">SALDO TOTAL EN CUENTA</small><br>
+        <span id="saldo-total" style="font-size:2rem; font-weight:bold;">$0.00</span>
+        <div class="kpi-grid">
+            <div><small>INGRESOS</small><br><span id="kpi-ing" class="kpi-val" style="color:var(--green)">$0</span></div>
+            <div><small>EGRESOS</small><br><span id="kpi-egr" class="kpi-val" style="color:var(--red)">$0</span></div>
+            <div><small>NETO</small><br><span id="kpi-neto" class="kpi-val"></span></div>
+        </div>
+    </div>
+
+    <div class="form-box">
+        <input type="date" id="f-fecha">
+        <input type="text" id="f-nota" placeholder="Concepto">
+        <input type="number" id="f-monto" step="0.01" placeholder="Importe">
+        <input type="hidden" id="edit-id">
+        <button class="btn btn-save" onclick="save()">Guardar</button>
+        <label class="btn btn-import">
+            📂 CSV <input type="file" id="csv" style="display:none" onchange="importCSV(event)">
+        </label>
+        <button class="btn btn-export" id="btn-export" style="display:none;" onclick="exportToExcel()">📊 Excel</button>
+    </div>
+
+    <div class="table-wrap" id="table-section" style="display:none">
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="toggleSort()">Fecha ↕</th>
+                    <th>Subcuenta / Concepto</th>
+                    <th style="text-align:right">Monto</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="ledger"></tbody>
+        </table>
+    </div>
+</div>
+
+<script type="module">
+    // 🔑 CONFIGURACIÓN: Reemplaza con tus datos reales de Supabase
+    const SUPABASE_URL = 'https://gbfqlappekttnypdilti.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnFsYXBwZWt0dG55cGRpbHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NjAyNzUsImV4cCI6MjA5MjEzNjI3NX0._L2jYcmnPPlXeIl9wHcUX45_onjxNUX0SbDJZcXenRQ';
     
-    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const IS_IPHONE = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const DEVICE_PRIORITY = IS_IPHONE ? 10 : 1;
 
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let db = {};
+    let active = null;
+    let activeSub = null;
+    let sortDesc = true;
+    let lastSyncTime = 0;
+    let pendingChanges = [];
+    let supabaseConnected = false;
     let currentUser = null;
-    let movimientos = [];
-    let listaSubcuentas = [];
-    let editingId = null;
-    let syncQueue = [];
-    let isOnline = navigator.onLine;
 
-    function showToast(msg, isError = false) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.className = 'toast' + (isError ? ' error' : '');
-      toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+    // === AUTH UI FUNCTIONS ===
+    window.showSignup = () => { document.getElementById('login-form').style.display = 'none'; document.getElementById('signup-form').style.display = 'block'; document.getElementById('auth-msg').textContent = ''; }
+    window.showLogin = () => { document.getElementById('login-form').style.display = 'block'; document.getElementById('signup-form').style.display = 'none'; document.getElementById('auth-msg').textContent = ''; }
+
+    window.login = async () => {
+        const email = document.getElementById('auth-email').value.trim();
+        const password = document.getElementById('auth-password').value;
+        if (!email || !password) return showAuthMsg('Completa ambos campos');
+        
+        // ✅ CORRECCIÓN CLAVE:  { session }
+        const {  { session }, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) return showAuthMsg(error.message);
+        handleAuthSuccess(session.user);
     }
 
-    function updateSyncStatus(msg) {
-      document.getElementById('sync-status').textContent = msg;
+    window.signup = async () => {
+        const email = document.getElementById('signup-email').value.trim();
+        const password = document.getElementById('signup-password').value;
+        if (!email || password.length < 6) return showAuthMsg('Contraseña mínima 6 caracteres');
+        
+        // ✅ CORRECCIÓN CLAVE:  { session }
+        const {  { session }, error } = await supabase.auth.signUp({ email, password });
+        if (error) return showAuthMsg(error.message);
+        showAuthMsg('✅ Cuenta creada. Revisa tu correo para confirmar.');
+        setTimeout(() => showLogin(), 2000);
     }
 
-    function formatDate(dateStr) {
-      if (!dateStr) return '-';
-      if (dateStr.includes('-')) {
-        const [y, m, d] = dateStr.split('-');
-        return `${d}/${m}/${y}`;
-      }
-      return dateStr;
+    window.logout = async () => {
+        await supabase.auth.signOut();
+        currentUser = null; db = {}; active = null;
+        document.getElementById('auth-screen').style.display = 'flex';
+        document.getElementById('app-screen').style.display = 'none';
     }
 
-    function formatCurrency(amount) {
-      const num = amount || 0;
-      return num < 0 ? '-$' + Math.abs(num).toFixed(2) : '$' + num.toFixed(2);
+    function showAuthMsg(msg) { document.getElementById('auth-msg').textContent = msg; }
+
+    async function handleAuthSuccess(user) {
+        currentUser = user;
+        document.getElementById('user-email').textContent = user.email;
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        
+        supabaseConnected = await loadFromCloud();
+        if (supabaseConnected) subscribeToRealtime();
+        else console.warn('⚠️ Modo offline');
+        
+        if (supabaseConnected && Object.keys(db).length === 0) await migrateFromLocalStorage();
+        renderAccounts(); renderSubAccounts(); if (active) renderLedger();
+        window.addEventListener('online', () => syncPendingQueue());
     }
 
-    // AUTH
-    document.getElementById('btn-login').addEventListener('click', async (e) => {
-      e.preventDefault();
-      try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({
-          email: document.getElementById('auth-email').value.trim(),
-          password: document.getElementById('auth-password').value
-        });
-        if (error) throw error;
-        if (data?.session) handleAuthSuccess(data.session);
-      } catch (err) {
-        showToast(err.message, true);
-      }
+    // Check session on load
+    // ✅ CORRECCIÓN CLAVE:  { session }
+    supabase.auth.getSession().then(({  { session } }) => {
+        if (session?.user) handleAuthSuccess(session.user);
     });
 
-    document.getElementById('btn-signup').addEventListener('click', async () => {
-      try {
-        const { data, error } = await supabaseClient.auth.signUp({
-          email: document.getElementById('auth-email').value.trim(),
-          password: document.getElementById('auth-password').value
-        });
-        if (error) throw error;
-        showToast('Cuenta creada exitosamente');
-      } catch (err) {
-        showToast(err.message, true);
-      }
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) handleAuthSuccess(session.user);
+        if (event === 'SIGNED_OUT') logout();
     });
 
-    document.getElementById('btn-logout').addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
-      window.location.reload();
-    });
-
-    async function checkSession() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (session) handleAuthSuccess(session);
-    }
-
-    function handleAuthSuccess(session) {
-      currentUser = session.user;
-      document.getElementById('auth-section').classList.add('hidden');
-      document.getElementById('dashboard-section').classList.remove('hidden');
-      document.getElementById('user-info').classList.remove('hidden');
-      document.getElementById('user-email').textContent = currentUser.email;
-      loadSubcuentas();
-      loadMovements();
-    }
-
-    // SUBCUENTAS
-    document.getElementById('btn-toggle-cuentas').addEventListener('click', () => {
-      document.getElementById('subcuentas-manager').classList.toggle('hidden');
-    });
-
-    document.getElementById('btn-close-cuentas').addEventListener('click', () => {
-      document.getElementById('subcuentas-manager').classList.add('hidden');
-    });
-
-    async function loadSubcuentas() {
-      const { data, error } = await supabaseClient.from('subcuentas').select('*').order('cuenta').order('created_at');
-      if (!error) {
-        listaSubcuentas = data || [];
-        renderCuentasPrincipales();
-        renderSubcuentasManager();
-      }
-    }
-
-    function renderCuentasPrincipales() {
-      const selectCuenta = document.getElementById('mv-cuenta');
-      const selectImportCuenta = document.getElementById('import-cuenta');
-      
-      const valMain = selectCuenta.value;
-      const valImport = selectImportCuenta.value;
-      
-      selectCuenta.innerHTML = '<option value="">1. Elige una Cuenta...</option>';
-      selectImportCuenta.innerHTML = '<option value="">1. Elige Cuenta de destino...</option>';
-      
-      const cuentasUnicas = [...new Set(listaSubcuentas.map(s => s.cuenta))];
-      cuentasUnicas.forEach(c => {
-        if (!c) return;
-        const opt1 = document.createElement('option'); opt1.value = c; opt1.textContent = c;
-        const opt2 = document.createElement('option'); opt2.value = c; opt2.textContent = c;
-        selectCuenta.appendChild(opt1);
-        selectImportCuenta.appendChild(opt2);
-      });
-      
-      if (valMain) selectCuenta.value = valMain;
-      if (valImport) selectImportCuenta.value = valImport;
-    }
-
-    document.getElementById('mv-cuenta').addEventListener('change', (e) => {
-      updateSubcuentasDropdown(e.target.value, 'mv-subcuenta');
-    });
-    
-    document.getElementById('import-cuenta').addEventListener('change', (e) => {
-      updateSubcuentasDropdown(e.target.value, 'import-subcuenta');
-    });
-
-    function updateSubcuentasDropdown(cuentaSeleccionada, targetSelectId, valorPreseleccionado = null) {
-      const selectSubcuenta = document.getElementById(targetSelectId);
-      selectSubcuenta.innerHTML = '<option value="">2. Elige la Subcuenta...</option>';
-      
-      if (!cuentaSeleccionada) {
-        selectSubcuenta.disabled = true;
-        return;
-      }
-      
-      selectSubcuenta.disabled = false;
-      const subcuentasFiltradas = listaSubcuentas.filter(s => s.cuenta === cuentaSeleccionada);
-      
-      subcuentasFiltradas.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.nombre;
-        opt.textContent = `${s.nombre} (${s.terminacion})`;
-        selectSubcuenta.appendChild(opt);
-      });
-
-      if (valorPreseleccionado) {
-        let exists = Array.from(selectSubcuenta.options).some(opt => opt.value === valorPreseleccionado);
-        if (!exists) {
-          const opt = document.createElement('option');
-          opt.value = valorPreseleccionado;
-          opt.textContent = valorPreseleccionado + ' (No en catálogo)';
-          selectSubcuenta.appendChild(opt);
+    // === DATA FUNCTIONS ===
+    async function loadFromCloud() {
+        try {
+            if (!currentUser) return false;
+            const { data, error } = await supabase.from('movimientos').select('*').eq('user_id', currentUser.id).order('updated_at', { ascending: false });
+            if (error) { console.warn('⚠️ Error cargando:', error.message); return false; }
+            db = {};
+            data.forEach(row => {
+                if (!db[row.account]) db[row.account] = { movimientos: [] };
+                db[row.account].movimientos.push({ id: row.id, fecha: row.fecha, concepto: row.concepto, importe: row.importe, subcuenta: row.subcuenta, _ts: row.updated_at });
+            });
+            lastSyncTime = Date.now();
+            console.log('✅ Conectado a la nube');
+            return true;
+        } catch (e) {
+            db = JSON.parse(localStorage.getItem('qwenlia_data')) || {};
+            return false;
         }
-        selectSubcuenta.value = valorPreseleccionado;
-      }
     }
 
-    // LISTA DE CUENTAS: GENERADA 100% CON DOM PARA EVITAR ERRORES DE CARACTERES
-    function renderSubcuentasManager() {
-      const list = document.getElementById('subcuentas-list');
-      list.innerHTML = '';
-
-      const grupos = {};
-      listaSubcuentas.forEach(s => {
-        if (!grupos[s.cuenta]) grupos[s.cuenta] = [];
-        grupos[s.cuenta].push(s);
-      });
-
-      Object.keys(grupos).forEach(cuenta => {
-        const headerDiv = document.createElement('div');
-        headerDiv.style.display = 'flex';
-        headerDiv.style.justifyContent = 'space-between';
-        headerDiv.style.alignItems = 'center';
-        headerDiv.style.marginTop = '15px';
-        headerDiv.style.paddingBottom = '5px';
-        headerDiv.style.borderBottom = '2px solid var(--border)';
-        
-        const titleH4 = document.createElement('h4');
-        titleH4.style.color = 'var(--primary)';
-        titleH4.style.margin = '0';
-        titleH4.textContent = `📁 ${cuenta}`;
-        
-        const btnDeleteCuenta = document.createElement('button');
-        btnDeleteCuenta.type = 'button';
-        btnDeleteCuenta.className = 'btn-icon danger';
-        btnDeleteCuenta.title = 'Eliminar cuenta completa y sus tarjetas';
-        btnDeleteCuenta.style.fontSize = '0.75rem';
-        btnDeleteCuenta.style.padding = '4px 8px';
-        btnDeleteCuenta.textContent = '🗑️ Borrar Cuenta';
-        btnDeleteCuenta.onclick = () => window.deleteCuenta(cuenta);
-
-        headerDiv.appendChild(titleH4);
-        headerDiv.appendChild(btnDeleteCuenta);
-        list.appendChild(headerDiv);
-
-        grupos[cuenta].forEach(s => {
-          const divSub = document.createElement('div');
-          divSub.style.display = 'flex';
-          divSub.style.justifyContent = 'space-between';
-          divSub.style.alignItems = 'center';
-          divSub.style.padding = '8px 0';
-          divSub.style.borderBottom = '1px solid var(--surface-hover)';
-          divSub.style.marginLeft = '15px';
-          
-          const spanInfo = document.createElement('span');
-          spanInfo.innerHTML = `${s.nombre} <small style="color:var(--text-muted)">${s.terminacion}</small>`;
-          
-          const btnDeleteSub = document.createElement('button');
-          btnDeleteSub.type = 'button';
-          btnDeleteSub.className = 'btn-icon danger';
-          btnDeleteSub.textContent = '🗑️';
-          btnDeleteSub.onclick = () => window.deleteSubcuenta(s.id);
-          
-          divSub.appendChild(spanInfo);
-          divSub.appendChild(btnDeleteSub);
-          list.appendChild(divSub);
-        });
-      });
-    }
-
-    document.getElementById('subcuenta-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const c = document.getElementById('sub-cuenta-padre').value.trim();
-      const n = document.getElementById('sub-nombre').value.trim();
-      const t = document.getElementById('sub-terminacion').value.trim();
-      const termFinal = t === "" ? "****" : `*${t}`;
-      
-      const { data, error } = await supabaseClient.from('subcuentas').insert([{
-        user_id: currentUser.id, cuenta: c, nombre: n, terminacion: termFinal
-      }]).select();
-      
-      if (!error) {
-        listaSubcuentas.push(data[0]);
-        renderCuentasPrincipales();
-        renderSubcuentasManager();
-        e.target.reset();
-        showToast('Agregado al catálogo');
-      } else {
-        showToast('Error al agregar', true);
-      }
-    });
-
-    // LÓGICA DE BORRADO DE CUENTA MEJORADA CON TRY/CATCH
-    window.deleteCuenta = async (cuentaName) => {
-      if (!confirm(`¿Estás seguro de eliminar la cuenta "${cuentaName}" y TODAS sus tarjetas?\n\n(Tus movimientos financieros NO se borrarán)`)) return;
-      
-      try {
-        const { error } = await supabaseClient.from('subcuentas')
-          .delete()
-          .eq('cuenta', cuentaName)
-          .eq('user_id', currentUser.id);
-        
-        if (error) throw error;
-        
-        // Actualizar variables y renderizar visuales
-        listaSubcuentas = listaSubcuentas.filter(s => s.cuenta !== cuentaName);
-        renderCuentasPrincipales();
-        renderSubcuentasManager();
-        
-        // Limpiar completamente los selectores en los dos formularios
-        document.getElementById('mv-cuenta').value = '';
-        updateSubcuentasDropdown('', 'mv-subcuenta');
-        
-        document.getElementById('import-cuenta').value = '';
-        updateSubcuentasDropdown('', 'import-subcuenta');
-        
-        showToast('Cuenta eliminada del catálogo');
-      } catch (err) {
-        console.error('Error borrando cuenta:', err);
-        showToast('Error al eliminar la cuenta', true);
-      }
-    };
-
-    window.deleteSubcuenta = async (id) => {
-      if (!confirm('¿Eliminar esta subcuenta del catálogo?\n\n(Tus movimientos financieros NO se borrarán)')) return;
-      
-      try {
-        const { error } = await supabaseClient.from('subcuentas')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', currentUser.id);
-          
-        if (error) throw error;
-        
-        listaSubcuentas = listaSubcuentas.filter(s => s.id !== id);
-        renderCuentasPrincipales();
-        renderSubcuentasManager();
-        
-        // Actualizar si el formulario tenía seleccionada esta cuenta
-        updateSubcuentasDropdown(document.getElementById('mv-cuenta').value, 'mv-subcuenta');
-        updateSubcuentasDropdown(document.getElementById('import-cuenta').value, 'import-subcuenta');
-        
-        showToast('Subcuenta eliminada');
-      } catch (err) {
-        console.error('Error borrando subcuenta:', err);
-        showToast('Error al eliminar la subcuenta', true);
-      }
-    };
-
-    // MOVIMIENTOS
-    async function loadMovements() {
-      const { data, error } = await supabaseClient.from('movimientos').select('*').order('fecha', { ascending: false });
-      if (!error) {
-        movimientos = data || [];
-        renderMovements();
-        updateSummary();
-      }
-    }
-
-    document.getElementById('movement-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const payload = {
-        fecha: document.getElementById('mv-fecha').value,
-        cuenta: document.getElementById('mv-cuenta').value,
-        subcuenta: document.getElementById('mv-subcuenta').value,
-        concepto: document.getElementById('mv-concepto').value.trim(),
-        monto: Math.abs(parseFloat(document.getElementById('mv-monto').value)),
-        tipo: document.getElementById('mv-tipo').value
-      };
-
-      if (editingId) {
-        const { error } = await supabaseClient.from('movimientos').update(payload).eq('id', editingId);
-        if (!error) {
-          editingId = null;
-          document.getElementById('btn-cancel-edit').classList.add('hidden');
-          document.getElementById('btn-save-mv').textContent = '💾 Guardar Movimiento';
+    async function pushToCloud(movimiento, account, action, isPriority = false) {
+        if (!supabaseConnected || !currentUser) { localStorage.setItem('qwenlia_data', JSON.stringify(db)); return; }
+        const payload = { user_id: currentUser.id, account, fecha: movimiento.fecha, concepto: movimiento.concepto, importe: movimiento.importe, subcuenta: movimiento.subcuenta || null, updated_at: new Date().toISOString(), priority: isPriority ? DEVICE_PRIORITY : 1, device: IS_IPHONE ? 'iphone' : 'desktop' };
+        try {
+            if (action === 'insert') { const { data, error } = await supabase.from('movimientos').insert(payload).select(); if (error) throw error; movimiento.id = data[0].id; }
+            else if (action === 'update') await supabase.from('movimientos').update(payload).eq('id', movimiento.id);
+            else if (action === 'delete') await supabase.from('movimientos').delete().eq('id', movimiento.id);
+            localStorage.setItem('qwenlia_data', JSON.stringify(db));
+        } catch (e) {
+            console.warn('⚠️ Error sync, guardando local:', e.message);
+            pendingChanges.push({ movimiento, account, action, isPriority, ts: Date.now() });
+            localStorage.setItem('qwenlia_data', JSON.stringify(db));
         }
-      } else {
-        await supabaseClient.from('movimientos').insert([{ ...payload, user_id: currentUser.id }]);
-      }
-      loadMovements();
-      e.target.reset();
-      document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
-      document.getElementById('mv-subcuenta').innerHTML = '<option value="">2. Elige la Subcuenta...</option>';
-      document.getElementById('mv-subcuenta').disabled = true;
-    });
-
-    window.editMovement = (id) => {
-      const m = movimientos.find(x => x.id === id);
-      editingId = id;
-      document.getElementById('mv-fecha').value = m.fecha;
-      document.getElementById('mv-concepto').value = m.concepto;
-      document.getElementById('mv-monto').value = m.monto;
-      document.getElementById('mv-tipo').value = m.tipo;
-      
-      const selectCuenta = document.getElementById('mv-cuenta');
-      let cuentaExists = Array.from(selectCuenta.options).some(opt => opt.value === m.cuenta);
-      if (!cuentaExists && m.cuenta) {
-        const opt = document.createElement('option');
-        opt.value = m.cuenta;
-        opt.textContent = m.cuenta;
-        selectCuenta.appendChild(opt);
-      }
-      selectCuenta.value = m.cuenta || '';
-      updateSubcuentasDropdown(m.cuenta, 'mv-subcuenta', m.subcuenta);
-      
-      document.getElementById('btn-save-mv').textContent = '✏️ Actualizar';
-      document.getElementById('btn-cancel-edit').classList.remove('hidden');
-      window.scrollTo(0,0);
-    };
-
-    window.deleteMovement = async (id) => {
-      if (confirm('¿Eliminar este movimiento de la base de datos?')) {
-        await supabaseClient.from('movimientos').delete().eq('id', id);
-        loadMovements();
-      }
-    };
-
-    function renderMovements() {
-      const container = document.getElementById('movements-container');
-      container.innerHTML = '';
-      
-      const groups = {};
-      movimientos.forEach(m => {
-        const c = m.cuenta || 'Sin Cuenta';
-        const sc = m.subcuenta || 'Sin Subcuenta';
-        const key = `${c} ➔ ${sc}`;
-        if (!groups[key]) groups[key] = { cuenta: c, subcuenta: sc, items: [] };
-        groups[key].items.push(m);
-      });
-
-      Object.keys(groups).sort().forEach(key => {
-        const groupData = groups[key];
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'subaccount-group';
-        
-        const header = document.createElement('div');
-        header.className = 'group-header';
-        
-        const titleSpan = document.createElement('span');
-        titleSpan.innerHTML = `📂 <b>${groupData.cuenta}</b> <span style="color:var(--text-muted)">❯ ${groupData.subcuenta}</span> <small style="color:var(--text-muted)">(${groupData.items.length})</small>`;
-        
-        const exportBtn = document.createElement('button');
-        exportBtn.className = 'btn-icon secondary';
-        exportBtn.innerHTML = '📊 Exportar movimientos';
-        exportBtn.style.fontSize = '0.75rem';
-        exportBtn.style.padding = '4px 8px';
-        exportBtn.onclick = (e) => {
-          e.stopPropagation();
-          const safeName = key.replace(/[^a-zA-Z0-9]/g, '_');
-          generateExcel(groupData.items, `Movimientos_${safeName}_${new Date().toISOString().split('T')[0]}.xls`);
-        };
-        
-        header.appendChild(titleSpan);
-        header.appendChild(exportBtn);
-
-        const content = document.createElement('div');
-        content.className = 'group-content';
-        content.innerHTML = `
-          <div class="table-wrapper"><table>
-            <thead><tr><th>Fecha</th><th>Concepto</th><th>Monto</th><th>Acciones</th></tr></thead>
-            <tbody>${groupData.items.map(m => `<tr>
-              <td>${formatDate(m.fecha)}</td><td>${m.concepto}</td>
-              <td style="color:${m.tipo === 'ingreso' ? 'var(--success)' : 'var(--danger)'}; font-weight:600;">
-                ${m.tipo === 'ingreso' ? '+' : '-'}${formatCurrency(m.monto)}</td>
-              <td class="actions"><button type="button" class="btn-icon secondary" onclick="editMovement('${m.id}')">✏️</button>
-                                  <button type="button" class="btn-icon danger" onclick="deleteMovement('${m.id}')">🗑️</button></td>
-            </tr>`).join('')}</tbody></table></div>`;
-        
-        header.addEventListener('click', () => content.classList.toggle('collapsed'));
-
-        groupDiv.appendChild(header);
-        groupDiv.appendChild(content);
-        container.appendChild(groupDiv);
-      });
     }
 
-    function updateSummary() {
-      const ing = movimientos.filter(m => m.tipo === 'ingreso').reduce((a, b) => a + b.monto, 0);
-      const egr = movimientos.filter(m => m.tipo === 'egreso').reduce((a, b) => a + b.monto, 0);
-      document.getElementById('total-ingresos').textContent = formatCurrency(ing);
-      document.getElementById('total-egresos').textContent = formatCurrency(egr);
-      document.getElementById('saldo-total').textContent = formatCurrency(ing - egr);
-      document.getElementById('neto').textContent = formatCurrency(ing - egr);
+    function subscribeToRealtime() {
+        try {
+            supabase.channel('qwenlia_sync')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'movimientos', filter: `user_id=eq.${currentUser.id}` }, async payload => {
+                    if ((payload.new?.priority || 0) >= DEVICE_PRIORITY || new Date(payload.new?.updated_at).getTime() > lastSyncTime) {
+                        await loadFromCloud(); renderAccounts(); renderSubAccounts(); if (active) renderLedger();
+                    }
+                })
+                .subscribe(status => {
+                    if (status !== 'SUBSCRIBED') {
+                        console.warn('⚠️ Realtime fallback polling 30s');
+                        setInterval(async () => { if (document.visibilityState === 'visible') { await loadFromCloud(); if (active) renderLedger(); } }, 30000);
+                    }
+                });
+        } catch (e) { console.warn('⚠️ Error subscribiendo:', e.message); }
     }
 
-    function generateExcel(dataToExport, filename) {
-      if (dataToExport.length === 0) return showToast('No hay datos para exportar', true);
-
-      const tableStyle = `
-        <style>
-          table { border-collapse: collapse; font-family: sans-serif; }
-          th { background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 10px; font-weight: bold; }
-          td { border: 1px solid #cbd5e1; padding: 10px; }
-          .ingreso { color: #10b981; font-weight: bold; }
-          .egreso { color: #ef4444; font-weight: bold; }
-        <\\/style>
-      `.replace(/\\/g, '');
-
-      let html = '<html><head><meta charset="UTF-8">' + tableStyle + '<\\/head><body>'.replace(/\\/g, '');
-      html += '<table><thead><tr><th>Fecha<\\/th><th>Concepto<\\/th><th>Monto<\\/th><th>Tipo<\\/th><th>Cuenta<\\/th><th>Subcuenta<\\/th><\\/tr><\\/thead><tbody>'.replace(/\\/g, '');
-
-      dataToExport.forEach(m => {
-        const colorClass = m.tipo === 'ingreso' ? 'ingreso' : 'egreso';
-        const tipoText = m.tipo === 'ingreso' ? 'Ganancia' : 'Gasto';
-        html += `<tr>
-          <td>${formatDate(m.fecha)}<\\/td>
-          <td>${m.concepto}<\\/td>
-          <td>${m.monto.toFixed(2)}<\\/td>
-          <td class="${colorClass}">${tipoText}<\\/td>
-          <td>${m.cuenta || '-'}<\\/td>
-          <td>${m.subcuenta || '-'}<\\/td>
-        <\\/tr>`.replace(/\\/g, '');
-      });
-
-      html += '<\\/tbody><\\/table><\\/body><\\/html>'.replace(/\\/g, '');
-
-      const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast('📊 Archivo exportado exitosamente');
+    async function syncPendingQueue() {
+        if (pendingChanges.length === 0 || !supabaseConnected) return;
+        for (const item of pendingChanges) await pushToCloud(item.movimiento, item.account, item.action, item.isPriority);
+        pendingChanges = []; await loadFromCloud(); renderAccounts(); renderSubAccounts(); if (active) renderLedger();
     }
 
-    document.getElementById('btn-export').addEventListener('click', () => {
-      generateExcel(movimientos, `Todos_los_movimientos_${new Date().toISOString().split('T')[0]}.xls`);
-    });
-
-    document.getElementById('btn-toggle-import').addEventListener('click', () => {
-      document.getElementById('import-panel').classList.toggle('hidden');
-    });
-
-    document.getElementById('btn-close-import').addEventListener('click', () => {
-      document.getElementById('import-panel').classList.add('hidden');
-    });
-
-    document.getElementById('btn-process-import').addEventListener('click', async () => {
-      const cuentaDestino = document.getElementById('import-cuenta').value;
-      const subcuentaDestino = document.getElementById('import-subcuenta').value;
-      const fileInput = document.getElementById('csv-import-file');
-
-      if (!cuentaDestino || !subcuentaDestino) {
-        showToast('Debes elegir la Cuenta y Subcuenta de destino', true);
-        return;
-      }
-
-      if (!fileInput.files.length) {
-        showToast('Selecciona un archivo CSV', true);
-        return;
-      }
-
-      try {
-        const text = await fileInput.files[0].text();
-        const lines = text.trim().split(/\r?\n/);
-        let added = 0;
-        
-        for (let i = 1; i < lines.length; i++) {
-          const row = lines[i].split(/[;,]/);
-          if (row.length < 4) continue;
-          
-          const [fechaRaw, concepto, incomeRaw, expenseRaw] = row;
-          
-          const income = Math.abs(parseFloat((incomeRaw || '').replace(/[^0-9.-]/g, ''))) || 0;
-          const expense = Math.abs(parseFloat((expenseRaw || '').replace(/[^0-9.-]/g, ''))) || 0;
-          
-          let monto = 0;
-          let tipo = '';
-
-          if (income > 0) {
-            monto = income;
-            tipo = 'ingreso';
-          } else if (expense > 0) {
-            monto = expense;
-            tipo = 'egreso';
-          } else {
-            continue; 
-          }
-          
-          let fecha = fechaRaw.trim();
-          if (fecha.includes('/')) {
-            const parts = fecha.split('/');
-            if (parts[2].length === 4) {
-              fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
-            } else if (parts[0].length === 4) {
-              fecha = `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+    async function migrateFromLocalStorage() {
+        const oldData = JSON.parse(localStorage.getItem('clau_lia_v2_pro')) || JSON.parse(localStorage.getItem('qwenlia_data'));
+        if (!oldData || !supabaseConnected) return;
+        console.log('🔄 Migrando...');
+        for (const [acc, data] of Object.entries(oldData)) {
+            for (const m of data.movimientos) {
+                await supabase.from('movimientos').insert({ user_id: currentUser.id, account: acc, fecha: m.fecha, concepto: m.concepto, importe: m.importe, subcuenta: m.subcuenta, updated_at: new Date().toISOString(), priority: 1, device: 'migration' });
             }
-          }
-          
-          const payload = {
-            user_id: currentUser.id,
-            fecha,
-            concepto: concepto.trim(),
-            monto,
-            tipo,
-            cuenta: cuentaDestino,
-            subcuenta: subcuentaDestino
-          };
-
-          await supabaseClient.from('movimientos').insert([payload]);
-          added++;
         }
-        
-        loadMovements();
-        showToast(`✅ ${added} movimientos importados a ${subcuentaDestino}`);
-        
-        document.getElementById('import-panel').classList.add('hidden');
-        fileInput.value = '';
-        
-      } catch (err) {
-        showToast('Error al leer el archivo CSV', true);
-        console.error(err);
-      }
-    });
+        await loadFromCloud(); renderAccounts(); renderSubAccounts(); if (active) renderLedger();
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('mv-fecha').value = new Date().toISOString().split('T')[0];
-      checkSession();
-    });
-  </script>
+    // === UI RENDERING ===
+    window.toggleTheme = () => document.body.classList.toggle('dark');
+    window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); document.getElementById('btn-export').style.display = active ? 'inline-block' : 'none'; renderAccounts(); renderSubAccounts(); if (active) renderLedger(); }
+    window.toggleSubBar = function() {
+        const bar = document.getElementById('sub-bar');
+        const arrow = document.getElementById('sub-arrow');
+        bar.classList.toggle('visible');
+        arrow.textContent = bar.classList.contains('visible') ? '▲' : '▼';
+    }
+
+    function renderAccounts() {
+        const bar = document.getElementById('account-bar'); bar.innerHTML = '';
+        Object.keys(db).forEach(name => {
+            const saldo = db[name].movimientos.reduce((a, b) => a + Number(b.importe), 0);
+            const btn = document.createElement('button');
+            btn.className = `acct-btn ${active === name ? 'active' : ''}`;
+            btn.innerHTML = `${name} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameAccount('${name}')">✏️</span>`;
+            btn.onclick = () => { active = name; activeSub = null; sync(); };
+            bar.appendChild(btn);
+        });
+    }
+
+    function renderSubAccounts() {
+        const bar = document.getElementById('sub-bar'); bar.innerHTML = '';
+        if (!active || !db[active]) { bar.classList.remove('visible'); return; }
+        const movs = db[active].movimientos;
+        const subs = [...new Set(movs.map(m => m.subcuenta).filter(Boolean))];
+        if (subs.length === 0) { bar.classList.remove('visible'); return; }
+        bar.classList.add('visible');
+        const allBtn = document.createElement('button');
+        allBtn.className = `sub-btn ${activeSub === null ? 'active' : ''}`;
+        allBtn.innerText = 'Todos';
+        allBtn.onclick = () => { activeSub = null; renderSubAccounts(); renderLedger(); };
+        bar.appendChild(allBtn);
+        subs.forEach(sub => {
+            const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
+            const btn = document.createElement('button');
+            btn.className = `sub-btn ${activeSub === sub ? 'active' : ''}`;
+            btn.innerHTML = `${sub} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameSubaccount('${sub}')">✏️</span>`;
+            btn.onclick = () => { activeSub = sub; renderSubAccounts(); renderLedger(); };
+            bar.appendChild(btn);
+        });
+    }
+
+    function renderLedger() {
+        document.getElementById('summary-view').style.display = 'block';
+        document.getElementById('table-section').style.display = 'block';
+        document.getElementById('btn-del').style.display = 'inline-block';
+        const body = document.getElementById('ledger'); body.innerHTML = '';
+        if (!db[active]) return;
+        let movs = [...db[active].movimientos];
+        if (activeSub) { movs = movs.filter(m => m.subcuenta === activeSub); document.getElementById('saldo-label').innerText = `SALDO SUBCUENTA: ${activeSub}`; }
+        else document.getElementById('saldo-label').innerText = 'SALDO TOTAL EN CUENTA';
+        let ing = 0, egr = 0;
+        movs.forEach(m => { if (m.importe > 0) ing += m.importe; else egr += m.importe; });
+        document.getElementById('saldo-total').innerText = `$${(ing + egr).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+        document.getElementById('kpi-ing').innerText = `+$${ing.toLocaleString()}`;
+        document.getElementById('kpi-egr').innerText = `-$${Math.abs(egr).toLocaleString()}`;
+        document.getElementById('kpi-neto').innerText = `$${(ing + egr).toLocaleString()}`;
+        movs.sort((a, b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
+        movs.forEach(m => {
+            const tag = m.subcuenta ? `<span class="tag-sub">${m.subcuenta}</span>` : '';
+            body.innerHTML += `<tr><td style="color:#888; font-size:0.8rem">${m.fecha}</td><td style="font-weight:600">${tag}${m.concepto}</td><td style="text-align:right; color:${m.importe >= 0 ? 'var(--green)' : 'var(--red)'}; font-family:monospace">$${m.importe.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td><span onclick="window.edit('${m.id}')" style="cursor:pointer;margin-right:8px">✏️</span><span onclick="window.deleteMovement('${m.id}')" style="cursor:pointer;color:var(--red)">🗑️</span></td></tr>`;
+        });
+    }
+
+    // === CSV PARSER & IMPORT ===
+    function parseCSVLine(text, separator) {
+        const result = []; let current = ''; let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char === '"') { inQuotes = !inQuotes; }
+            else if (char === separator && !inQuotes) { result.push(current); current = ''; }
+            else { current += char; }
+        }
+        result.push(current);
+        return result.map(val => val.trim().replace(/^"|"$/g, ''));
+    }
+
+    window.importCSV = async function(e) {
+        if (!active) return alert("Selecciona una categoría primero");
+        const file = e.target.files[0];
+        const subName = file.name.replace('.csv', '').substring(0, 8);
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+            const content = ev.target.result.replace(/^\ufeff/, "").replace(/\r/g, "");
+            const lines = content.split("\n").filter(l => l.trim() !== "");
+            if (lines.length < 2) return;
+            const separator = lines[0].includes(';') ? ';' : ',';
+            const headers = parseCSVLine(lines[0], separator).map(h => h.toLowerCase());
+            const iF = headers.findIndex(h => h.includes("date") || h.includes("fecha"));
+            const iN = headers.findIndex(h => h.includes("note") || h.includes("concepto") || h.includes("descripcion"));
+            const iInc = headers.findIndex(h => h.includes("income") || h.includes("ingreso") || h.includes("abono"));
+            const iExp = headers.findIndex(h => h.includes("expense") || h.includes("egreso") || h.includes("retiro"));
+            let count = 0, skipped = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim(); if (!line) continue;
+                const c = parseCSVLine(line, separator);
+                if (!c[iF] || !c[iN]) { skipped++; continue; }
+                let fechaRaw = c[iF], fecha = fechaRaw;
+                if (fechaRaw.includes('/')) { const parts = fechaRaw.split('/'); if (parts.length === 3) fecha = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`; }
+                else if (!fechaRaw.includes('-') && fechaRaw.length === 8) { fecha = `${fechaRaw.substring(0, 4)}-${fechaRaw.substring(4, 6)}-${fechaRaw.substring(6, 8)}`; }
+                let m = 0;
+                if (iInc !== -1 && iExp !== -1 && c[iInc] && c[iExp]) m = (parseFloat(c[iInc].replace(/[^0-9.-]/g, '')) || 0) - (parseFloat(c[iExp].replace(/[^0-9.-]/g, '')) || 0);
+                if (!isNaN(m) && m !== 0) {
+                    db[active].movimientos.push({ id: 'temp_' + Date.now() + '_' + i, fecha, concepto: c[iN] || "Carga CSV", importe: m, subcuenta: subName });
+                    await pushToCloud(db[active].movimientos[db[active].movimientos.length - 1], active, 'insert', IS_IPHONE);
+                    count++;
+                } else { skipped++; }
+            }
+            renderSubAccounts(); sync();
+            alert(`✅ Importados: ${count}\n⏭️ Saltadas: ${skipped}`);
+        };
+        reader.readAsText(file);
+    }
+
+    // === CRUD & UTILS ===
+    window.save = async function() {
+        if (!active) return alert("⚠️ Primero selecciona una categoría");
+        if (!db[active]) db[active] = { movimientos: [] };
+        const f = document.getElementById('f-fecha').value, n = document.getElementById('f-nota').value, m = parseFloat(document.getElementById('f-monto').value), id = document.getElementById('edit-id').value;
+        if (!f || !n || isNaN(m)) return alert("Datos incompletos");
+        const subVal = activeSub || (id && db[active].movimientos.find(x => x.id === id) ? db[active].movimientos.find(x => x.id === id).subcuenta : 'Manual');
+        if (id) {
+            const i = db[active].movimientos.findIndex(x => x.id === id);
+            if (i === -1) return alert("Movimiento no encontrado");
+            const updated = { id, fecha: f, concepto: n, importe: m, subcuenta: subVal };
+            db[active].movimientos[i] = updated;
+            await pushToCloud(updated, active, 'update', IS_IPHONE);
+        } else {
+            const newMov = { id: 'temp_' + Date.now(), fecha: f, concepto: n, importe: m, subcuenta: subVal };
+            db[active].movimientos.push(newMov);
+            await pushToCloud(newMov, active, 'insert', IS_IPHONE);
+        }
+        document.getElementById('f-nota').value = ''; document.getElementById('f-monto').value = ''; document.getElementById('edit-id').value = '';
+        sync();
+    }
+
+    window.addAccount = function() { const n = prompt("Nombre:"); if (n && !db[n]) { db[n] = { movimientos: [] }; active = n; activeSub = null; sync(); } }
+    window.deleteAccount = async function() { 
+        if(confirm("¿Eliminar cuenta y todos sus movimientos?")) { 
+            if(supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active);
+            delete db[active]; active = null; activeSub = null; sync(); location.reload(); 
+        } 
+    }
+    window.deleteMovement = async function(id) {
+        if (!confirm("¿Eliminar este movimiento?")) return;
+        if (!active || !db[active]) return;
+        const index = db[active].movimientos.findIndex(m => m.id === id);
+        if (index === -1) return;
+        if (supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('id', id);
+        db[active].movimientos.splice(index, 1);
+        sync();
+    }
+    window.edit = function(id) {
+        if (!active || !db[active]) return;
+        const m = db[active].movimientos.find(x => x.id === id); if (!m) return;
+        document.getElementById('f-fecha').value = m.fecha; document.getElementById('f-nota').value = m.concepto;
+        document.getElementById('f-monto').value = m.importe; document.getElementById('edit-id').value = m.id;
+        window.scrollTo(0, 0);
+    }
+    window.toggleSort = function() { sortDesc = !sortDesc; renderLedger(); }
+    window.renameAccount = async function(oldName) {
+        if (!db[oldName]) return;
+        const newName = prompt("Nuevo nombre para la cuenta:", oldName);
+        if (!newName || newName === oldName || db[newName]) return alert("Nombre inválido o ya existe.");
+        db[newName] = db[oldName]; delete db[oldName];
+        if(supabaseConnected && currentUser) await supabase.from('movimientos').update({ account: newName }).eq('user_id', currentUser.id).eq('account', oldName);
+        if (active === oldName) active = newName;
+        activeSub = null; sync();
+    }
+    window.renameSubaccount = async function(oldSub) {
+        if (!active || !db[active]) return;
+        const newSub = prompt("Nuevo nombre para la subcuenta:", oldSub);
+        if (!newSub || newSub === oldSub) return;
+        db[active].movimientos.forEach(m => { if (m.subcuenta === oldSub) m.subcuenta = newSub; });
+        if(supabaseConnected && currentUser) await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', oldSub);
+        renderSubAccounts(); renderLedger();
+        localStorage.setItem('qwenlia_data', JSON.stringify(db));
+    }
+
+    // === EXPORT TO EXCEL ===
+    window.exportToExcel = function() {
+        if (!active || !db[active]) return alert("Selecciona una cuenta primero");
+        let data = db[active].movimientos;
+        if (activeSub) data = data.filter(m => m.subcuenta === activeSub);
+        if (data.length === 0) return alert("No hay datos para exportar");
+        data.sort((a,b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
+        let csv = "Fecha;Concepto;Importe;Subcuenta\n";
+        data.forEach(m => {
+            const concepto = `"${(m.concepto || '').replace(/"/g, '""')}"`;
+            const subcuenta = `"${(m.subcuenta || '').replace(/"/g, '""')}"`;
+            csv += `${m.fecha};${concepto};${m.importe};${subcuenta}\n`;
+        });
+        const total = data.reduce((sum, m) => sum + m.importe, 0);
+        const ingresos = data.filter(m => m.importe > 0).reduce((sum, m) => sum + m.importe, 0);
+        const egresos = Math.abs(data.filter(m => m.importe < 0).reduce((sum, m) => sum + m.importe, 0));
+        csv += `\n;;INGRESOS;${ingresos}\n;;EGRESOS;${egresos}\n;;TOTAL;${total}\n`;
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `QwenLIA_${active}${activeSub ? '_' + activeSub : ''}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+</script>
 </body>
 </html>
