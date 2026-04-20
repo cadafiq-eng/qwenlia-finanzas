@@ -61,6 +61,30 @@
         th { background: rgba(0,0,0,0.05); font-size: 0.75rem; text-transform: uppercase; color: #888; cursor: pointer; }
         .tag-sub { font-size: 0.7rem; background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: bold; }
 
+        /* Subcuenta selector */
+        .sub-selector-row { display: flex; gap: 8px; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+        .sub-select { flex: 1; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font-size: 0.9rem; cursor: pointer; }
+        .sub-select:focus { outline: 2px solid var(--accent); }
+        .sub-manage-btn { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); cursor: pointer; font-size: 0.9rem; }
+        .sub-manage-panel { display: none; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+        .sub-manage-panel.open { display: block; }
+        .sub-manage-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 4px; border-bottom: 1px solid var(--line); font-size: 0.85rem; }
+        .sub-manage-item:last-child { border-bottom: none; }
+        .sub-manage-actions { display: flex; gap: 8px; }
+
+        /* Month tabs */
+        .month-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 6px; margin-bottom: 0; }
+        .month-tabs::-webkit-scrollbar { height: 3px; }
+        .month-tabs::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
+        .month-tab { padding: 5px 12px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-size: 0.8rem; }
+        .month-tab.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
+
+        /* Pagination */
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px; background: var(--card); border-top: 1px solid var(--line); font-size: 0.85rem; }
+        .page-btn { padding: 5px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); cursor: pointer; }
+        .page-btn:disabled { opacity: 0.35; cursor: default; }
+        .page-info { color: #888; }
+
         @media (max-width: 600px) {
             .sub-btn { padding: 5px 8px; font-size: 0.75rem; }
             .sub-bar::-webkit-scrollbar { display: none; }
@@ -115,8 +139,17 @@
     </div>
 
     <div class="account-bar" id="account-bar"></div>
-    <button class="btn-toggle-sub" onclick="toggleSubBar()">📂 Subcuentas <span id="sub-arrow">▼</span></button>
-    <div class="sub-bar" id="sub-bar"></div>
+
+    <!-- Subcuenta selector compacto -->
+    <div class="sub-selector-row" id="sub-selector-row" style="display:none">
+        <select class="sub-select" id="sub-select" onchange="onSubSelectChange(this.value)">
+            <option value="">— Todas las subcuentas —</option>
+        </select>
+        <button class="sub-manage-btn" onclick="toggleSubManage()" title="Gestionar subcuentas">⚙️</button>
+    </div>
+    <div class="sub-manage-panel" id="sub-manage-panel">
+        <div id="sub-manage-list"></div>
+    </div>
 
     <div style="margin-bottom: 15px; display:flex; gap:10px;">
         <button class="btn" style="background:var(--line); color:var(--text);" onclick="addAccount()">+ Nueva Categoría</button>
@@ -145,18 +178,26 @@
         <button class="btn btn-export" id="btn-export" style="display:none;" onclick="exportToExcel()">📊 Excel</button>
     </div>
 
-    <div class="table-wrap" id="table-section" style="display:none">
-        <table>
-            <thead>
-                <tr>
-                    <th onclick="toggleSort()">Fecha ↕</th>
-                    <th>Subcuenta / Concepto</th>
-                    <th style="text-align:right">Monto</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody id="ledger"></tbody>
-        </table>
+    <div id="table-section" style="display:none">
+        <div class="month-tabs" id="month-tabs"></div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th onclick="toggleSort()">Fecha ↕</th>
+                        <th>Subcuenta / Concepto</th>
+                        <th style="text-align:right">Monto</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="ledger"></tbody>
+            </table>
+            <div class="pagination" id="pagination" style="display:none">
+                <button class="page-btn" id="btn-prev" onclick="changePage(-1)">◀ Anterior</button>
+                <span class="page-info" id="page-info"></span>
+                <button class="page-btn" id="btn-next" onclick="changePage(1)">Siguiente ▶</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -179,6 +220,9 @@
     let pendingChanges = [];
     let supabaseConnected = false;
     let currentUser = null;
+    let activeMonth = null;   // 'YYYY-MM' o null = todos
+    let currentPage = 1;
+    const PAGE_SIZE = 25;
 
     // === AUTH UI FUNCTIONS ===
     window.showSignup = () => { document.getElementById('login-form').style.display = 'none'; document.getElementById('signup-form').style.display = 'block'; document.getElementById('auth-msg').textContent = ''; }
@@ -315,11 +359,20 @@
     // === UI RENDERING ===
     window.toggleTheme = () => document.body.classList.toggle('dark');
     window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); document.getElementById('btn-export').style.display = active ? 'inline-block' : 'none'; renderAccounts(); renderSubAccounts(); if (active) renderLedger(); }
-    window.toggleSubBar = function() {
-        const bar = document.getElementById('sub-bar');
-        const arrow = document.getElementById('sub-arrow');
-        bar.classList.toggle('visible');
-        arrow.textContent = bar.classList.contains('visible') ? '▲' : '▼';
+
+    window.onSubSelectChange = function(val) {
+        activeSub = val || null;
+        activeMonth = null;
+        currentPage = 1;
+        renderLedger();
+        // sync manage panel highlight
+        document.querySelectorAll('.sub-manage-item').forEach(el => {
+            el.style.background = (el.dataset.sub === (activeSub || '')) ? 'rgba(232,160,32,0.15)' : '';
+        });
+    }
+
+    window.toggleSubManage = function() {
+        document.getElementById('sub-manage-panel').classList.toggle('open');
     }
 
     function renderAccounts() {
@@ -335,47 +388,126 @@
     }
 
     function renderSubAccounts() {
-        const bar = document.getElementById('sub-bar'); bar.innerHTML = '';
-        if (!active || !db[active]) { bar.classList.remove('visible'); return; }
+        const row = document.getElementById('sub-selector-row');
+        const sel  = document.getElementById('sub-select');
+        const list = document.getElementById('sub-manage-list');
+        if (!active || !db[active]) { row.style.display = 'none'; return; }
         const movs = db[active].movimientos;
         const subs = [...new Set(movs.map(m => m.subcuenta).filter(Boolean))];
-        if (subs.length === 0) { bar.classList.remove('visible'); return; }
-        bar.classList.add('visible');
-        const allBtn = document.createElement('button');
-        allBtn.className = `sub-btn ${activeSub === null ? 'active' : ''}`;
-        allBtn.innerText = 'Todos';
-        allBtn.onclick = () => { activeSub = null; renderSubAccounts(); renderLedger(); };
-        bar.appendChild(allBtn);
+        if (subs.length === 0) { row.style.display = 'none'; return; }
+        row.style.display = 'flex';
+
+        // Rebuild <select>
+        sel.innerHTML = '<option value="">— Todas las subcuentas —</option>';
         subs.forEach(sub => {
             const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
-            const btn = document.createElement('button');
-            btn.className = `sub-btn ${activeSub === sub ? 'active' : ''}`;
-            btn.innerHTML = `${sub} ($${saldo.toFixed(0)}) <span class="rename-btn" onclick="event.stopPropagation(); renameSubaccount('${sub}')">✏️</span><span class="rename-btn" onclick="event.stopPropagation(); deleteSubaccount('${sub}')" style="color:var(--red)">🗑️</span>`;
-            btn.onclick = () => { activeSub = sub; renderSubAccounts(); renderLedger(); };
-            bar.appendChild(btn);
+            const opt = document.createElement('option');
+            opt.value = sub;
+            opt.textContent = `${sub}  ($${saldo.toFixed(0)})`;
+            if (activeSub === sub) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        if (!activeSub) sel.value = '';
+
+        // Rebuild manage panel
+        list.innerHTML = '';
+        subs.forEach(sub => {
+            const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
+            const count = movs.filter(m => m.subcuenta === sub).length;
+            const div = document.createElement('div');
+            div.className = 'sub-manage-item';
+            div.dataset.sub = sub;
+            div.innerHTML = `
+                <span><strong>${sub}</strong> <small style="color:#888">${count} mov · $${saldo.toFixed(0)}</small></span>
+                <div class="sub-manage-actions">
+                    <button class="sub-manage-btn" onclick="renameSubaccount('${sub}')" title="Renombrar">✏️</button>
+                    <button class="sub-manage-btn" style="color:var(--red)" onclick="deleteSubaccount('${sub}')" title="Eliminar subcuenta">🗑️</button>
+                </div>`;
+            list.appendChild(div);
         });
     }
+
+    const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
     function renderLedger() {
         document.getElementById('summary-view').style.display = 'block';
         document.getElementById('table-section').style.display = 'block';
         document.getElementById('btn-del').style.display = 'inline-block';
-        const body = document.getElementById('ledger'); body.innerHTML = '';
         if (!db[active]) return;
-        let movs = [...db[active].movimientos];
-        if (activeSub) { movs = movs.filter(m => m.subcuenta === activeSub); document.getElementById('saldo-label').innerText = `SALDO SUBCUENTA: ${activeSub}`; }
-        else document.getElementById('saldo-label').innerText = 'SALDO TOTAL EN CUENTA';
+
+        // Base filter: subcuenta
+        let base = [...db[active].movimientos];
+        if (activeSub) {
+            base = base.filter(m => m.subcuenta === activeSub);
+            document.getElementById('saldo-label').innerText = `SALDO SUBCUENTA: ${activeSub}`;
+        } else {
+            document.getElementById('saldo-label').innerText = 'SALDO TOTAL EN CUENTA';
+        }
+
+        // KPIs siempre sobre todo el periodo (sin filtro de mes)
         let ing = 0, egr = 0;
-        movs.forEach(m => { if (m.importe > 0) ing += m.importe; else egr += m.importe; });
+        base.forEach(m => { if (m.importe > 0) ing += m.importe; else egr += m.importe; });
         document.getElementById('saldo-total').innerText = `$${(ing + egr).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
         document.getElementById('kpi-ing').innerText = `+$${ing.toLocaleString()}`;
         document.getElementById('kpi-egr').innerText = `-$${Math.abs(egr).toLocaleString()}`;
         document.getElementById('kpi-neto').innerText = `$${(ing + egr).toLocaleString()}`;
+
+        // Build month tabs
+        const months = [...new Set(base.map(m => m.fecha ? m.fecha.substring(0, 7) : null).filter(Boolean))].sort().reverse();
+        const tabsEl = document.getElementById('month-tabs');
+        tabsEl.innerHTML = '';
+        if (months.length > 1) {
+            const allTab = document.createElement('button');
+            allTab.className = `month-tab ${activeMonth === null ? 'active' : ''}`;
+            allTab.textContent = 'Todos';
+            allTab.onclick = () => { activeMonth = null; currentPage = 1; renderLedger(); };
+            tabsEl.appendChild(allTab);
+            months.forEach(ym => {
+                const [y, mo] = ym.split('-');
+                const tab = document.createElement('button');
+                tab.className = `month-tab ${activeMonth === ym ? 'active' : ''}`;
+                tab.textContent = `${MONTH_NAMES[parseInt(mo)-1]} ${y}`;
+                tab.onclick = () => { activeMonth = ym; currentPage = 1; renderLedger(); };
+                tabsEl.appendChild(tab);
+            });
+        } else {
+            tabsEl.innerHTML = '';
+            activeMonth = null;
+        }
+
+        // Apply month filter
+        let movs = activeMonth ? base.filter(m => m.fecha && m.fecha.startsWith(activeMonth)) : base;
         movs.sort((a, b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
-        movs.forEach(m => {
+
+        // Pagination
+        const total = movs.length;
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const page = movs.slice(start, start + PAGE_SIZE);
+
+        const pagEl = document.getElementById('pagination');
+        if (total > PAGE_SIZE) {
+            pagEl.style.display = 'flex';
+            document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}  (${total} movimientos)`;
+            document.getElementById('btn-prev').disabled = currentPage === 1;
+            document.getElementById('btn-next').disabled = currentPage === totalPages;
+        } else {
+            pagEl.style.display = 'none';
+        }
+
+        // Render rows
+        const body = document.getElementById('ledger'); body.innerHTML = '';
+        page.forEach(m => {
             const tag = m.subcuenta ? `<span class="tag-sub">${m.subcuenta}</span>` : '';
             body.innerHTML += `<tr><td style="color:#888; font-size:0.8rem">${m.fecha}</td><td style="font-weight:600">${tag}${m.concepto}</td><td style="text-align:right; color:${m.importe >= 0 ? 'var(--green)' : 'var(--red)'}; font-family:monospace">$${m.importe.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td><span onclick="window.edit('${m.id}')" style="cursor:pointer;margin-right:8px">✏️</span><span onclick="window.deleteMovement('${m.id}')" style="cursor:pointer;color:var(--red)">🗑️</span></td></tr>`;
         });
+    }
+
+    window.changePage = function(dir) {
+        currentPage += dir;
+        renderLedger();
+        document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     // === CSV PARSER & IMPORT ===
