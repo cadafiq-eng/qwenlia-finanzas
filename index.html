@@ -198,7 +198,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th onclick="toggleSort()">Fecha ↕</th>
+                        <th onclick="toggleSort()" id="th-fecha" style="user-select:none">Fecha ↓</th>
                         <th>Subcuenta / Concepto</th>
                         <th style="text-align:right">Monto</th>
                         <th></th>
@@ -207,9 +207,11 @@
                 <tbody id="ledger"></tbody>
             </table>
             <div class="pagination" id="pagination" style="display:none">
-                <button class="page-btn" id="btn-prev" onclick="changePage(-1)">◀ Anterior</button>
+                <button class="page-btn" id="btn-first" onclick="goToPage(1)" title="Primera página">⏮</button>
+                <button class="page-btn" id="btn-prev"  onclick="changePage(-1)">◀</button>
                 <span class="page-info" id="page-info"></span>
-                <button class="page-btn" id="btn-next" onclick="changePage(1)">Siguiente ▶</button>
+                <button class="page-btn" id="btn-next"  onclick="changePage(1)">▶</button>
+                <button class="page-btn" id="btn-last"  onclick="goToPage('last')" title="Última página">⏭</button>
             </div>
         </div>
     </div>
@@ -278,11 +280,19 @@
         setTimeout(() => showLogin(), 2000);
     }
 
+    let _loggingOut = false;
     window.logout = async () => {
-        await supabase.auth.signOut();
-        currentUser = null; db = {}; active = null;
+        if (_loggingOut) return;
+        _loggingOut = true;
+        try { await supabase.auth.signOut(); } catch(e) {}
+        currentUser = null; db = {}; active = null; activeSub = null;
         document.getElementById('auth-screen').style.display = 'flex';
         document.getElementById('app-screen').style.display = 'none';
+        document.getElementById('auth-email').value = '';
+        document.getElementById('auth-password').value = '';
+        document.getElementById('auth-msg').textContent = '';
+        showLogin();
+        _loggingOut = false;
     }
 
     function showAuthMsg(msg) { document.getElementById('auth-msg').textContent = msg; }
@@ -309,8 +319,8 @@
     });
 
     supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) handleAuthSuccess(session.user);
-        if (event === 'SIGNED_OUT') logout();
+        if (event === 'SIGNED_IN' && session?.user && !currentUser) handleAuthSuccess(session.user);
+        // SIGNED_OUT is handled by logout() directly — no recursive call needed
     });
 
     // === DATA FUNCTIONS ===
@@ -518,9 +528,11 @@
         const pagEl = document.getElementById('pagination');
         if (total > PAGE_SIZE) {
             pagEl.style.display = 'flex';
-            document.getElementById('page-info').textContent = `Página ${currentPage} de ${totalPages}  (${total} movimientos)`;
-            document.getElementById('btn-prev').disabled = currentPage === 1;
-            document.getElementById('btn-next').disabled = currentPage === totalPages;
+            document.getElementById('page-info').textContent = `${currentPage} / ${totalPages}  (${total})`;
+            document.getElementById('btn-first').disabled = currentPage === 1;
+            document.getElementById('btn-prev').disabled  = currentPage === 1;
+            document.getElementById('btn-next').disabled  = currentPage === totalPages;
+            document.getElementById('btn-last').disabled  = currentPage === totalPages;
         } else {
             pagEl.style.display = 'none';
         }
@@ -535,6 +547,20 @@
 
     window.changePage = function(dir) {
         currentPage += dir;
+        renderLedger();
+        document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    window.goToPage = function(target) {
+        if (target === 'last') {
+            // Calculate total pages from current data
+            let base = [...db[active].movimientos];
+            if (activeSub) base = base.filter(m => m.subcuenta === activeSub);
+            if (activeMonth) base = base.filter(m => m.fecha && m.fecha.startsWith(activeMonth));
+            currentPage = Math.max(1, Math.ceil(base.length / PAGE_SIZE));
+        } else {
+            currentPage = target;
+        }
         renderLedger();
         document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
@@ -679,7 +705,13 @@
         document.getElementById('f-monto').value = m.importe; document.getElementById('edit-id').value = m.id;
         window.scrollTo(0, 0);
     }
-    window.toggleSort = function() { sortDesc = !sortDesc; renderLedger(); }
+    window.toggleSort = function() {
+        sortDesc = !sortDesc;
+        const th = document.getElementById('th-fecha');
+        if (th) th.textContent = 'Fecha ' + (sortDesc ? '↓' : '↑');
+        currentPage = 1;
+        renderLedger();
+    }
     window.renameAccount = async function(oldName) {
         if (!db[oldName]) return;
         const newName = await openModal('Renombrar categoría', oldName);
