@@ -599,8 +599,18 @@
                 const c = parseCSVLine(line, separator);
                 if (!c[iF] || !c[iN]) { skipped++; continue; }
                 let fechaRaw = c[iF], fecha = fechaRaw;
-                if (fechaRaw.includes('/')) { const parts = fechaRaw.split('/'); if (parts.length === 3) fecha = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`; }
-                else if (!fechaRaw.includes('-') && fechaRaw.length === 8) { fecha = `${fechaRaw.substring(0, 4)}-${fechaRaw.substring(4, 6)}-${fechaRaw.substring(6, 8)}`; }
+                if (fechaRaw.includes('/')) {
+                    // DD/MM/YYYY → YYYY-MM-DD
+                    const parts = fechaRaw.split('/');
+                    if (parts.length === 3) fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                } else if (fechaRaw.includes('-') && !fechaRaw.substring(0,4).match(/^\d{4}$/)) {
+                    // DD-MM-YYYY → YYYY-MM-DD  (Santander y otros bancos mexicanos)
+                    const parts = fechaRaw.split('-');
+                    if (parts.length === 3) fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                } else if (!fechaRaw.includes('-') && fechaRaw.length === 8) {
+                    // YYYYMMDD → YYYY-MM-DD
+                    fecha = `${fechaRaw.substring(0,4)}-${fechaRaw.substring(4,6)}-${fechaRaw.substring(6,8)}`;
+                }
                 let m = 0;
                 if (iInc !== -1 && iExp !== -1 && c[iInc] && c[iExp]) m = (parseFloat(c[iInc].replace(/[^0-9.-]/g, '')) || 0) - (parseFloat(c[iExp].replace(/[^0-9.-]/g, '')) || 0);
                 if (!isNaN(m) && m !== 0) {
