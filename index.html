@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>QwenLIA Finanzas</title>
     
-    <!-- Favicon y configuración PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -61,7 +60,6 @@
         th { background: rgba(0,0,0,0.05); font-size: 0.75rem; text-transform: uppercase; color: #888; cursor: pointer; }
         .tag-sub { font-size: 0.7rem; background: var(--accent); color: #000; padding: 2px 6px; border-radius: 4px; margin-right: 5px; font-weight: bold; }
 
-        /* Subcuenta selector */
         .sub-selector-row { display: flex; gap: 8px; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
         .sub-select { flex: 1; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--text); font-size: 0.9rem; cursor: pointer; }
         .sub-select:focus { outline: 2px solid var(--accent); }
@@ -72,14 +70,12 @@
         .sub-manage-item:last-child { border-bottom: none; }
         .sub-manage-actions { display: flex; gap: 8px; }
 
-        /* Month tabs */
         .month-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 8px 0 6px; margin-bottom: 0; }
         .month-tabs::-webkit-scrollbar { height: 3px; }
         .month-tabs::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
         .month-tab { padding: 5px 12px; border: 1px solid var(--line); border-radius: 15px; background: var(--card); color: var(--text); cursor: pointer; white-space: nowrap; font-size: 0.8rem; }
         .month-tab.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
 
-        /* Pagination */
         .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 10px; background: var(--card); border-top: 1px solid var(--line); font-size: 0.85rem; }
         .page-btn { padding: 5px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); cursor: pointer; }
         .page-btn:disabled { opacity: 0.35; cursor: default; }
@@ -91,7 +87,7 @@
             .btn-toggle-sub { font-size: 0.8rem; padding: 5px 10px; }
         }
 
-        /* Inline modal (reemplaza prompt nativo) */
+        /* Modal genérico */
         .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center; }
         .modal-overlay.open { display:flex; }
         .modal-box { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:24px; width:90%; max-width:360px; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
@@ -103,7 +99,7 @@
         .modal-btn.confirm { background:var(--accent); color:#000; }
         .modal-btn.cancel  { background:var(--line);   color:var(--text); }
 
-        /* Auth UI */
+        /* Auth */
         #auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
         #app-screen { display: none; }
         .auth-card { background: var(--card); padding: 30px; border-radius: 12px; border: 1px solid var(--line); max-width: 400px; width: 100%; }
@@ -112,6 +108,21 @@
         .auth-btn { width: 100%; margin-bottom: 10px; }
         .auth-btn.secondary { background: var(--line); color: var(--text); }
         .logout-btn { background: var(--red); color: white; font-size: 0.8rem; padding: 5px 10px; }
+        .forgot-link { font-size: 0.82rem; color: var(--accent); cursor: pointer; text-decoration: underline; display: block; margin-top: 4px; margin-bottom: 10px; background: none; border: none; width: 100%; text-align: center; }
+        .forgot-link:hover { opacity: 0.8; }
+
+        /* Modal de ayuda — más ancho y scrollable */
+        #modal-help .modal-box {
+            max-width: 520px;
+            max-height: 88vh;
+            overflow-y: auto;
+        }
+        .help-section { margin-bottom: 18px; }
+        .help-section h4 { color: var(--accent); font-size: 0.85rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .help-section ol, .help-section ul { padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 0.83rem; line-height: 1.6; }
+        .help-section p { font-size: 0.83rem; line-height: 1.6; color: #888; }
+        code { background: var(--line); padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+        .help-version { font-size: 0.72rem; color: #888; margin-bottom: 18px; }
     </style>
 </head>
 <body class="dark">
@@ -127,6 +138,7 @@
             <input type="password" id="auth-password" class="auth-input" placeholder="Contraseña">
             <button class="btn auth-btn" onclick="login()">Iniciar Sesión</button>
             <button class="btn auth-btn secondary" onclick="showSignup()">Crear Cuenta</button>
+            <button class="forgot-link" onclick="forgotPassword()">¿Olvidaste tu contraseña?</button>
         </div>
 
         <div id="signup-form" style="display:none;">
@@ -135,7 +147,16 @@
             <button class="btn auth-btn" onclick="signup()">Registrarse</button>
             <button class="btn auth-btn secondary" onclick="showLogin()">Ya tengo cuenta</button>
         </div>
+
+        <div id="reset-form" style="display:none;">
+            <p style="font-size:0.85rem; color:#888; margin-bottom:14px;">Escribe tu correo y te enviaremos un enlace para restablecer tu contraseña.</p>
+            <input type="email" id="reset-email" class="auth-input" placeholder="Correo electrónico">
+            <button class="btn auth-btn" onclick="sendReset()">Enviar enlace</button>
+            <button class="btn auth-btn secondary" onclick="showLogin()">Volver al inicio</button>
+        </div>
+
         <p id="auth-msg" style="color:var(--red); margin-top:10px; font-size:0.9rem;"></p>
+        <button class="forgot-link" style="margin-top:14px;color:#888;" onclick="openHelp()">❓ Ayuda / Manual de uso</button>
     </div>
 </div>
 
@@ -147,12 +168,12 @@
             <span id="user-email" style="font-size:0.8rem; color:#888;"></span>
             <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
             <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+            <button class="theme-btn" onclick="openHelp()" title="Ayuda">❓</button>
         </div>
     </div>
 
     <div class="account-bar" id="account-bar"></div>
 
-    <!-- Subcuenta selector compacto -->
     <div class="sub-selector-row" id="sub-selector-row" style="display:none">
         <select class="sub-select" id="sub-select" onchange="onSubSelectChange(this.value)">
             <option value="">— Todas las subcuentas —</option>
@@ -183,7 +204,7 @@
     <div class="form-box">
         <input type="date" id="f-fecha">
         <input type="text" id="f-nota" placeholder="Concepto">
-        <input type="number" id="f-monto" step="0.01" placeholder="Importe">
+        <input type="number" id="f-monto" step="0.01" placeholder="Importe (+/-)">
         <input type="hidden" id="edit-id">
         <button class="btn btn-save" onclick="save()">Guardar</button>
         <label class="btn btn-import">
@@ -207,17 +228,17 @@
                 <tbody id="ledger"></tbody>
             </table>
             <div class="pagination" id="pagination" style="display:none">
-                <button class="page-btn" id="btn-first" onclick="goToPage(1)" title="Primera página">⏮</button>
+                <button class="page-btn" id="btn-first" onclick="goToPage(1)" title="Primera">⏮</button>
                 <button class="page-btn" id="btn-prev"  onclick="changePage(-1)">◀</button>
                 <span class="page-info" id="page-info"></span>
                 <button class="page-btn" id="btn-next"  onclick="changePage(1)">▶</button>
-                <button class="page-btn" id="btn-last"  onclick="goToPage('last')" title="Última página">⏭</button>
+                <button class="page-btn" id="btn-last"  onclick="goToPage('last')" title="Última">⏭</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Inline modal (reemplaza prompt nativo) -->
+<!-- Modal genérico (rename, etc.) -->
 <div class="modal-overlay" id="modal-overlay" onclick="modalCancel(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <div class="modal-title" id="modal-title">Nombre</div>
@@ -230,8 +251,104 @@
     </div>
 </div>
 
+<!-- Modal de Ayuda -->
+<div class="modal-overlay" id="modal-help" onclick="closeHelp(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-title">❓ Manual — QwenLIA Finanzas</div>
+        <p class="help-version">Control financiero inteligente · <a href="https://cadafiq-eng.github.io/qwenlia-finanzas/" style="color:var(--accent)">cadafiq-eng.github.io/qwenlia-finanzas</a></p>
+
+        <div class="help-section">
+            <h4>📱 Instalación en iPhone / iPad</h4>
+            <ol>
+                <li>Abre <strong>Safari</strong> y ve a la dirección de la app</li>
+                <li>Toca el ícono <strong>Compartir</strong> (cuadro con flecha ↑ en la barra inferior)</li>
+                <li>Selecciona <strong>"Agregar a pantalla de inicio"</strong></li>
+                <li>Confirma el nombre y toca <strong>Agregar</strong></li>
+                <li>La app aparece como ícono en tu pantalla ✅</li>
+            </ol>
+            <p style="margin-top:6px;">⚠️ Usa siempre Safari en iPhone — Chrome no soporta "Agregar a pantalla de inicio".</p>
+        </div>
+
+        <div class="help-section">
+            <h4>🔐 Crear cuenta e iniciar sesión</h4>
+            <ol>
+                <li>Toca <strong>Crear Cuenta</strong> e ingresa tu correo y contraseña (mín. 6 caracteres)</li>
+                <li>Revisa tu correo — recibirás un enlace de confirmación</li>
+                <li>Una vez confirmado, inicia sesión con tus datos</li>
+                <li>Tus datos se sincronizan en la nube — accede desde cualquier dispositivo</li>
+            </ol>
+        </div>
+
+        <div class="help-section">
+            <h4>🔑 ¿Olvidaste tu contraseña?</h4>
+            <ol>
+                <li>En la pantalla de inicio de sesión toca <strong>"¿Olvidaste tu contraseña?"</strong></li>
+                <li>Escribe tu correo electrónico y toca <strong>Enviar enlace</strong></li>
+                <li>Revisa tu bandeja de entrada (y spam)</li>
+                <li>Toca el enlace del correo — te regresa a la app para crear nueva contraseña</li>
+            </ol>
+        </div>
+
+        <div class="help-section">
+            <h4>🗂 Estructura de cuentas</h4>
+            <ul>
+                <li><strong>Categoría</strong> — el titular o grupo principal (ej. Luis, Familia, Ivan)</li>
+                <li><strong>Subcuenta</strong> — la institución (ej. BBVA TD, Openbank, Efectivo)</li>
+            </ul>
+            <p style="margin-top:6px;">Crea primero la categoría con <strong>+ Nueva Categoría</strong>, luego agrega subcuentas con <strong>+ Nueva Subcuenta</strong> o importando un CSV.</p>
+        </div>
+
+        <div class="help-section">
+            <h4>➕ Capturar un movimiento</h4>
+            <ol>
+                <li>Selecciona la <strong>Categoría</strong> y la <strong>Subcuenta</strong></li>
+                <li>Llena: fecha, concepto e importe</li>
+                <li>Importe <strong>positivo</strong> = ingreso · <strong>negativo</strong> = egreso (ej. -500)</li>
+                <li>Toca <strong>Guardar</strong> — se sincroniza automáticamente</li>
+            </ol>
+        </div>
+
+        <div class="help-section">
+            <h4>⬆ Importar CSV</h4>
+            <ol>
+                <li>Selecciona la categoría destino primero</li>
+                <li>Toca <strong>📂 CSV</strong> y elige el archivo</li>
+                <li>El CSV debe tener columnas: <code>date, note, income, expense</code></li>
+                <li>El nombre del archivo se usa como nombre de subcuenta</li>
+            </ol>
+        </div>
+
+        <div class="help-section">
+            <h4>✏ Editar y eliminar</h4>
+            <ul>
+                <li>Toca <strong>✏️</strong> en cualquier fila para editar — los datos suben al formulario</li>
+                <li>Modifica los campos y toca <strong>Guardar</strong></li>
+                <li>Toca <strong>🗑️</strong> para eliminar (pide confirmación)</li>
+                <li>Para renombrar: toca el ✏️ junto al nombre de la categoría en la barra superior</li>
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h4>💾 Respaldo</h4>
+            <ul>
+                <li>Los datos se guardan en la nube (Supabase) en tiempo real</li>
+                <li>Usa <strong>📊 Excel</strong> para descargar respaldo local periódicamente</li>
+                <li>El archivo descargado es compatible con Excel y Google Sheets</li>
+            </ul>
+        </div>
+
+        <div class="help-section">
+            <h4>🌓 Modo día / noche</h4>
+            <p>Toca el ícono 🌓 en la barra superior para cambiar entre modo oscuro y claro.</p>
+        </div>
+
+        <div class="modal-actions" style="margin-top:10px;">
+            <button class="modal-btn confirm" onclick="document.getElementById('modal-help').classList.remove('open')">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <script type="module">
-    // 🔑 CONFIGURACIÓN: Reemplaza con tus datos reales de Supabase
     const SUPABASE_URL = 'https://gbfqlappekttnypdilti.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZnFsYXBwZWt0dG55cGRpbHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1NjAyNzUsImV4cCI6MjA5MjEzNjI3NX0._L2jYcmnPPlXeIl9wHcUX45_onjxNUX0SbDJZcXenRQ';
     
@@ -249,20 +366,50 @@
     let pendingChanges = [];
     let supabaseConnected = false;
     let currentUser = null;
-    let activeMonth = null;   // 'YYYY-MM' o null = todos
+    let activeMonth = null;
     let currentPage = 1;
     const PAGE_SIZE = 25;
 
-    // === AUTH UI FUNCTIONS ===
-    window.showSignup = () => { document.getElementById('login-form').style.display = 'none'; document.getElementById('signup-form').style.display = 'block'; document.getElementById('auth-msg').textContent = ''; }
-    window.showLogin = () => { document.getElementById('login-form').style.display = 'block'; document.getElementById('signup-form').style.display = 'none'; document.getElementById('auth-msg').textContent = ''; }
+    // === AUTH ===
+    window.showSignup = () => {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('signup-form').style.display = 'block';
+        document.getElementById('reset-form').style.display = 'none';
+        document.getElementById('auth-msg').textContent = '';
+    }
+    window.showLogin = () => {
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('signup-form').style.display = 'none';
+        document.getElementById('reset-form').style.display = 'none';
+        document.getElementById('auth-msg').textContent = '';
+    }
+    window.showReset = () => {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('signup-form').style.display = 'none';
+        document.getElementById('reset-form').style.display = 'block';
+        document.getElementById('auth-msg').textContent = '';
+    }
+
+    // Olvidé mi contraseña — muestra formulario de reset
+    window.forgotPassword = () => { showReset(); }
+
+    // Enviar email de recuperación vía Supabase
+    window.sendReset = async () => {
+        const email = document.getElementById('reset-email').value.trim();
+        if (!email) return showAuthMsg('Escribe tu correo electrónico');
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: 'https://cadafiq-eng.github.io/qwenlia-finanzas/'
+        });
+        if (error) return showAuthMsg(error.message);
+        showAuthMsg('✅ Enlace enviado. Revisa tu correo (y carpeta de spam).');
+        document.getElementById('auth-msg').style.color = 'var(--green)';
+        setTimeout(() => { showLogin(); document.getElementById('auth-msg').style.color = 'var(--red)'; }, 4000);
+    }
 
     window.login = async () => {
         const email = document.getElementById('auth-email').value.trim();
         const password = document.getElementById('auth-password').value;
         if (!email || !password) return showAuthMsg('Completa ambos campos');
-        
-        // ✅ CORRECCIÓN CLAVE:  { session }
         const { data: { session }, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) return showAuthMsg(error.message);
         handleAuthSuccess(session.user);
@@ -272,8 +419,6 @@
         const email = document.getElementById('signup-email').value.trim();
         const password = document.getElementById('signup-password').value;
         if (!email || password.length < 6) return showAuthMsg('Contraseña mínima 6 caracteres');
-        
-        // ✅ CORRECCIÓN CLAVE:  { session }
         const { data: { session }, error } = await supabase.auth.signUp({ email, password });
         if (error) return showAuthMsg(error.message);
         showAuthMsg('✅ Cuenta creada. Revisa tu correo para confirmar.');
@@ -302,28 +447,27 @@
         document.getElementById('user-email').textContent = user.email;
         document.getElementById('auth-screen').style.display = 'none';
         document.getElementById('app-screen').style.display = 'block';
-        
         supabaseConnected = await loadFromCloud();
         if (supabaseConnected) subscribeToRealtime();
         else console.warn('⚠️ Modo offline');
-        
         if (supabaseConnected && Object.keys(db).length === 0) await migrateFromLocalStorage();
         renderAccounts(); renderSubAccounts(); if (active) renderLedger();
         window.addEventListener('online', () => syncPendingQueue());
     }
 
-    // Check session on load
-    // ✅ CORRECCIÓN CLAVE:  { session }
     supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) handleAuthSuccess(session.user);
     });
 
     supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session?.user && !currentUser) handleAuthSuccess(session.user);
-        // SIGNED_OUT is handled by logout() directly — no recursive call needed
     });
 
-    // === DATA FUNCTIONS ===
+    // === HELP MODAL ===
+    window.openHelp = () => document.getElementById('modal-help').classList.add('open');
+    window.closeHelp = (e) => { if (e.target === document.getElementById('modal-help')) document.getElementById('modal-help').classList.remove('open'); }
+
+    // === DATA ===
     async function loadFromCloud() {
         try {
             if (!currentUser) return false;
@@ -335,7 +479,6 @@
                 db[row.account].movimientos.push({ id: row.id, fecha: row.fecha, concepto: row.concepto, importe: row.importe, subcuenta: row.subcuenta, _ts: row.updated_at });
             });
             lastSyncTime = Date.now();
-            console.log('✅ Conectado a la nube');
             return true;
         } catch (e) {
             db = JSON.parse(localStorage.getItem('qwenlia_data')) || {};
@@ -352,7 +495,6 @@
             else if (action === 'delete') await supabase.from('movimientos').delete().eq('id', movimiento.id);
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
         } catch (e) {
-            console.warn('⚠️ Error sync, guardando local:', e.message);
             pendingChanges.push({ movimiento, account, action, isPriority, ts: Date.now() });
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
         }
@@ -368,7 +510,6 @@
                 })
                 .subscribe(status => {
                     if (status !== 'SUBSCRIBED') {
-                        console.warn('⚠️ Realtime fallback polling 30s');
                         setInterval(async () => { if (document.visibilityState === 'visible') { await loadFromCloud(); if (active) renderLedger(); } }, 30000);
                     }
                 });
@@ -384,7 +525,6 @@
     async function migrateFromLocalStorage() {
         const oldData = JSON.parse(localStorage.getItem('clau_lia_v2_pro')) || JSON.parse(localStorage.getItem('qwenlia_data'));
         if (!oldData || !supabaseConnected) return;
-        console.log('🔄 Migrando...');
         for (const [acc, data] of Object.entries(oldData)) {
             for (const m of data.movimientos) {
                 await supabase.from('movimientos').insert({ user_id: currentUser.id, account: acc, fecha: m.fecha, concepto: m.concepto, importe: m.importe, subcuenta: m.subcuenta, updated_at: new Date().toISOString(), priority: 1, device: 'migration' });
@@ -393,24 +533,15 @@
         await loadFromCloud(); renderAccounts(); renderSubAccounts(); if (active) renderLedger();
     }
 
-    // === UI RENDERING ===
+    // === UI ===
     window.toggleTheme = () => document.body.classList.toggle('dark');
     window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); document.getElementById('btn-export').style.display = active ? 'inline-block' : 'none'; renderAccounts(); renderSubAccounts(); if (active) renderLedger(); }
 
     window.onSubSelectChange = function(val) {
-        activeSub = val || null;
-        activeMonth = null;
-        currentPage = 1;
-        renderLedger();
-        // sync manage panel highlight
-        document.querySelectorAll('.sub-manage-item').forEach(el => {
-            el.style.background = (el.dataset.sub === (activeSub || '')) ? 'rgba(232,160,32,0.15)' : '';
-        });
+        activeSub = val || null; activeMonth = null; currentPage = 1; renderLedger();
+        document.querySelectorAll('.sub-manage-item').forEach(el => { el.style.background = (el.dataset.sub === (activeSub || '')) ? 'rgba(232,160,32,0.15)' : ''; });
     }
-
-    window.toggleSubManage = function() {
-        document.getElementById('sub-manage-panel').classList.toggle('open');
-    }
+    window.toggleSubManage = function() { document.getElementById('sub-manage-panel').classList.toggle('open'); }
 
     function renderAccounts() {
         const bar = document.getElementById('account-bar'); bar.innerHTML = '';
@@ -435,32 +566,25 @@
         const subs = [...new Set(movs.map(m => m.subcuenta).filter(Boolean))];
         if (subs.length === 0) { row.style.display = 'none'; return; }
         row.style.display = 'flex';
-
-        // Rebuild <select>
         sel.innerHTML = '<option value="">— Todas las subcuentas —</option>';
         subs.forEach(sub => {
             const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
             const opt = document.createElement('option');
-            opt.value = sub;
-            opt.textContent = `${sub}  ($${saldo.toFixed(0)})`;
+            opt.value = sub; opt.textContent = `${sub}  ($${saldo.toFixed(0)})`;
             if (activeSub === sub) opt.selected = true;
             sel.appendChild(opt);
         });
         if (!activeSub) sel.value = '';
-
-        // Rebuild manage panel
         list.innerHTML = '';
         subs.forEach(sub => {
             const saldo = movs.filter(m => m.subcuenta === sub).reduce((a, b) => a + Number(b.importe), 0);
             const count = movs.filter(m => m.subcuenta === sub).length;
             const div = document.createElement('div');
-            div.className = 'sub-manage-item';
-            div.dataset.sub = sub;
-            div.innerHTML = `
-                <span><strong>${sub}</strong> <small style="color:#888">${count} mov · $${saldo.toFixed(0)}</small></span>
+            div.className = 'sub-manage-item'; div.dataset.sub = sub;
+            div.innerHTML = `<span><strong>${sub}</strong> <small style="color:#888">${count} mov · $${saldo.toFixed(0)}</small></span>
                 <div class="sub-manage-actions">
                     <button class="sub-manage-btn" onclick="renameSubaccount('${sub}')" title="Renombrar">✏️</button>
-                    <button class="sub-manage-btn" style="color:var(--red)" onclick="deleteSubaccount('${sub}')" title="Eliminar subcuenta">🗑️</button>
+                    <button class="sub-manage-btn" style="color:var(--red)" onclick="deleteSubaccount('${sub}')" title="Eliminar">🗑️</button>
                 </div>`;
             list.appendChild(div);
         });
@@ -473,8 +597,6 @@
         document.getElementById('table-section').style.display = 'block';
         document.getElementById('btn-del').style.display = 'inline-block';
         if (!db[active]) return;
-
-        // Base filter: subcuenta
         let base = [...db[active].movimientos];
         if (activeSub) {
             base = base.filter(m => m.subcuenta === activeSub);
@@ -482,19 +604,14 @@
         } else {
             document.getElementById('saldo-label').innerText = 'SALDO TOTAL EN CUENTA';
         }
-
-        // KPIs siempre sobre todo el periodo (sin filtro de mes)
         let ing = 0, egr = 0;
         base.forEach(m => { if (m.importe > 0) ing += m.importe; else egr += m.importe; });
         document.getElementById('saldo-total').innerText = `$${(ing + egr).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
         document.getElementById('kpi-ing').innerText = `+$${ing.toLocaleString()}`;
         document.getElementById('kpi-egr').innerText = `-$${Math.abs(egr).toLocaleString()}`;
         document.getElementById('kpi-neto').innerText = `$${(ing + egr).toLocaleString()}`;
-
-        // Build month tabs
         const months = [...new Set(base.map(m => m.fecha ? m.fecha.substring(0, 7) : null).filter(Boolean))].sort().reverse();
-        const tabsEl = document.getElementById('month-tabs');
-        tabsEl.innerHTML = '';
+        const tabsEl = document.getElementById('month-tabs'); tabsEl.innerHTML = '';
         if (months.length > 1) {
             const allTab = document.createElement('button');
             allTab.className = `month-tab ${activeMonth === null ? 'active' : ''}`;
@@ -509,22 +626,14 @@
                 tab.onclick = () => { activeMonth = ym; currentPage = 1; renderLedger(); };
                 tabsEl.appendChild(tab);
             });
-        } else {
-            tabsEl.innerHTML = '';
-            activeMonth = null;
-        }
-
-        // Apply month filter
+        } else { tabsEl.innerHTML = ''; activeMonth = null; }
         let movs = activeMonth ? base.filter(m => m.fecha && m.fecha.startsWith(activeMonth)) : base;
         movs.sort((a, b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
-
-        // Pagination
         const total = movs.length;
         const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
         if (currentPage > totalPages) currentPage = totalPages;
         const start = (currentPage - 1) * PAGE_SIZE;
         const page = movs.slice(start, start + PAGE_SIZE);
-
         const pagEl = document.getElementById('pagination');
         if (total > PAGE_SIZE) {
             pagEl.style.display = 'flex';
@@ -533,11 +642,7 @@
             document.getElementById('btn-prev').disabled  = currentPage === 1;
             document.getElementById('btn-next').disabled  = currentPage === totalPages;
             document.getElementById('btn-last').disabled  = currentPage === totalPages;
-        } else {
-            pagEl.style.display = 'none';
-        }
-
-        // Render rows
+        } else { pagEl.style.display = 'none'; }
         const body = document.getElementById('ledger'); body.innerHTML = '';
         page.forEach(m => {
             const tag = m.subcuenta ? `<span class="tag-sub">${m.subcuenta}</span>` : '';
@@ -545,27 +650,18 @@
         });
     }
 
-    window.changePage = function(dir) {
-        currentPage += dir;
-        renderLedger();
-        document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-
+    window.changePage = function(dir) { currentPage += dir; renderLedger(); document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
     window.goToPage = function(target) {
         if (target === 'last') {
-            // Calculate total pages from current data
             let base = [...db[active].movimientos];
             if (activeSub) base = base.filter(m => m.subcuenta === activeSub);
             if (activeMonth) base = base.filter(m => m.fecha && m.fecha.startsWith(activeMonth));
             currentPage = Math.max(1, Math.ceil(base.length / PAGE_SIZE));
-        } else {
-            currentPage = target;
-        }
-        renderLedger();
-        document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else { currentPage = target; }
+        renderLedger(); document.getElementById('table-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    // === CSV PARSER & IMPORT ===
+    // === CSV ===
     function parseCSVLine(text, separator) {
         const result = []; let current = ''; let inQuotes = false;
         for (let i = 0; i < text.length; i++) {
@@ -600,15 +696,12 @@
                 if (!c[iF] || !c[iN]) { skipped++; continue; }
                 let fechaRaw = c[iF], fecha = fechaRaw;
                 if (fechaRaw.includes('/')) {
-                    // DD/MM/YYYY → YYYY-MM-DD
                     const parts = fechaRaw.split('/');
                     if (parts.length === 3) fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
                 } else if (fechaRaw.includes('-') && !fechaRaw.substring(0,4).match(/^\d{4}$/)) {
-                    // DD-MM-YYYY → YYYY-MM-DD  (Santander y otros bancos mexicanos)
                     const parts = fechaRaw.split('-');
                     if (parts.length === 3) fecha = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
                 } else if (!fechaRaw.includes('-') && fechaRaw.length === 8) {
-                    // YYYYMMDD → YYYY-MM-DD
                     fecha = `${fechaRaw.substring(0,4)}-${fechaRaw.substring(4,6)}-${fechaRaw.substring(6,8)}`;
                 }
                 let m = 0;
@@ -625,7 +718,7 @@
         reader.readAsText(file);
     }
 
-    // === CRUD & UTILS ===
+    // === CRUD ===
     window.save = async function() {
         if (!active) return alert("⚠️ Primero selecciona una categoría");
         if (!db[active]) db[active] = { movimientos: [] };
@@ -647,7 +740,7 @@
         sync();
     }
 
-    // === MODAL HELPER (reemplaza prompt nativo) ===
+    // === MODAL HELPER ===
     let _modalResolve = null;
     window.openModal = function(title, defaultVal = '') {
         return new Promise(resolve => {
@@ -668,36 +761,30 @@
         document.getElementById('modal-overlay').classList.remove('open');
         if (_modalResolve) { _modalResolve(null); _modalResolve = null; }
     }
-    window.modalCancel = function(e) {
-        if (e.target === document.getElementById('modal-overlay')) modalClose();
-    }
+    window.modalCancel = function(e) { if (e.target === document.getElementById('modal-overlay')) modalClose(); }
 
     window.addAccount = async function() {
         const n = await openModal('Nombre de la nueva categoría');
         if (n && !db[n]) { db[n] = { movimientos: [] }; active = n; activeSub = null; sync(); }
         else if (n && db[n]) alert('Ya existe una categoría con ese nombre.');
     }
-
     window.addSubAccount = async function() {
         if (!active) return alert('Primero selecciona una categoría');
         const n = await openModal('Nombre de la nueva subcuenta');
         if (!n) return;
-        // Check duplicate
         const exists = db[active].movimientos.some(m => m.subcuenta === n);
         if (exists) return alert('Ya existe esa subcuenta.');
-        // Create a $0 placeholder movement so the subcuenta appears in the selector
         const today = new Date().toISOString().split('T')[0];
         const mov = { id: 'temp_' + Date.now(), fecha: today, concepto: '(Subcuenta creada)', importe: 0, subcuenta: n };
         db[active].movimientos.push(mov);
         await pushToCloud(mov, active, 'insert', IS_IPHONE);
-        activeSub = n;
-        sync();
+        activeSub = n; sync();
     }
-    window.deleteAccount = async function() { 
-        if(confirm("¿Eliminar cuenta y todos sus movimientos?")) { 
+    window.deleteAccount = async function() {
+        if(confirm("¿Eliminar cuenta y todos sus movimientos?")) {
             if(supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active);
-            delete db[active]; active = null; activeSub = null; sync(); location.reload(); 
-        } 
+            delete db[active]; active = null; activeSub = null; sync(); location.reload();
+        }
     }
     window.deleteMovement = async function(id) {
         if (!confirm("¿Eliminar este movimiento?")) return;
@@ -705,8 +792,7 @@
         const index = db[active].movimientos.findIndex(m => m.id === id);
         if (index === -1) return;
         if (supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('id', id);
-        db[active].movimientos.splice(index, 1);
-        sync();
+        db[active].movimientos.splice(index, 1); sync();
     }
     window.edit = function(id) {
         if (!active || !db[active]) return;
@@ -719,8 +805,7 @@
         sortDesc = !sortDesc;
         const th = document.getElementById('th-fecha');
         if (th) th.textContent = 'Fecha ' + (sortDesc ? '↓' : '↑');
-        currentPage = 1;
-        renderLedger();
+        currentPage = 1; renderLedger();
     }
     window.renameAccount = async function(oldName) {
         if (!db[oldName]) return;
@@ -741,21 +826,18 @@
         renderSubAccounts(); renderLedger();
         localStorage.setItem('qwenlia_data', JSON.stringify(db));
     }
-
     window.deleteSubaccount = async function(sub) {
         if (!active || !db[active]) return;
         const movs = db[active].movimientos.filter(m => m.subcuenta === sub);
-        if (!confirm(`¿Eliminar la subcuenta "${sub}" y sus ${movs.length} movimiento(s)? Esta acción no se puede deshacer.`)) return;
-        if (supabaseConnected && currentUser) {
-            await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', sub);
-        }
+        if (!confirm(`¿Eliminar la subcuenta "${sub}" y sus ${movs.length} movimiento(s)?`)) return;
+        if (supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', sub);
         db[active].movimientos = db[active].movimientos.filter(m => m.subcuenta !== sub);
         if (activeSub === sub) activeSub = null;
         localStorage.setItem('qwenlia_data', JSON.stringify(db));
         renderSubAccounts(); renderLedger();
     }
 
-    // === EXPORT TO EXCEL ===
+    // === EXPORT ===
     window.exportToExcel = function() {
         if (!active || !db[active]) return alert("Selecciona una cuenta primero");
         let data = db[active].movimientos;
