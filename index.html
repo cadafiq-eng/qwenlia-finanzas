@@ -155,6 +155,13 @@
             <button class="btn auth-btn secondary" onclick="showLogin()">Volver al inicio</button>
         </div>
 
+        <div id="newpass-form" style="display:none;">
+            <p style="font-size:0.85rem; color:#888; margin-bottom:14px;">Escribe tu nueva contraseña.</p>
+            <input type="password" id="newpass-1" class="auth-input" placeholder="Nueva contraseña (mín. 6 caracteres)">
+            <input type="password" id="newpass-2" class="auth-input" placeholder="Confirmar nueva contraseña">
+            <button class="btn auth-btn" onclick="updatePassword()">Guardar nueva contraseña</button>
+        </div>
+
         <p id="auth-msg" style="color:var(--red); margin-top:10px; font-size:0.9rem;"></p>
         <button class="forgot-link" style="margin-top:14px;color:#888;" onclick="openHelp()">❓ Ayuda / Manual de uso</button>
     </div>
@@ -387,7 +394,16 @@
         document.getElementById('login-form').style.display = 'none';
         document.getElementById('signup-form').style.display = 'none';
         document.getElementById('reset-form').style.display = 'block';
+        document.getElementById('newpass-form').style.display = 'none';
         document.getElementById('auth-msg').textContent = '';
+    }
+    function showNewPass() {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('signup-form').style.display = 'none';
+        document.getElementById('reset-form').style.display = 'none';
+        document.getElementById('newpass-form').style.display = 'block';
+        document.getElementById('auth-msg').textContent = '✏️ Escribe tu nueva contraseña.';
+        document.getElementById('auth-msg').style.color = 'var(--accent)';
     }
 
     // Olvidé mi contraseña — muestra formulario de reset
@@ -455,12 +471,33 @@
         window.addEventListener('online', () => syncPendingQueue());
     }
 
+    // Guardar nueva contraseña tras recuperación
+    window.updatePassword = async () => {
+        const p1 = document.getElementById('newpass-1').value;
+        const p2 = document.getElementById('newpass-2').value;
+        if (p1.length < 6) return showAuthMsg('Mínimo 6 caracteres');
+        if (p1 !== p2) return showAuthMsg('Las contraseñas no coinciden');
+        const { error } = await supabase.auth.updateUser({ password: p1 });
+        if (error) return showAuthMsg(error.message);
+        document.getElementById('auth-msg').style.color = 'var(--green)';
+        showAuthMsg('✅ Contraseña actualizada. Inicia sesión.');
+        setTimeout(() => {
+            document.getElementById('auth-msg').style.color = 'var(--red)';
+            showLogin();
+        }, 2500);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) handleAuthSuccess(session.user);
     });
 
     supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session?.user && !currentUser) handleAuthSuccess(session.user);
+        if (event === 'PASSWORD_RECOVERY') {
+            // Usuario llegó desde el enlace del correo — mostrar formulario de nueva contraseña
+            showNewPass();
+        } else if (event === 'SIGNED_IN' && session?.user && !currentUser) {
+            handleAuthSuccess(session.user);
+        }
     });
 
     // === HELP MODAL ===
