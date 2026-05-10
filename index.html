@@ -174,6 +174,7 @@
         <div style="display:flex; gap:10px; align-items:center;">
             <span id="user-email" style="font-size:0.8rem; color:#888;"></span>
             <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+            <button class="logout-btn" style="background:#3a3a60;" onclick="changePassword()" title="Cambiar contraseña">🔑</button>
             <button class="theme-btn" onclick="toggleTheme()">🌓</button>
             <button class="theme-btn" onclick="openHelp()" title="Ayuda">❓</button>
         </div>
@@ -254,6 +255,20 @@
         <div class="modal-actions">
             <button class="modal-btn cancel"  onclick="modalClose()">Cancelar</button>
             <button class="modal-btn confirm" onclick="modalConfirm()">Aceptar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal cambiar contraseña (dentro de sesión) -->
+<div class="modal-overlay" id="modal-chpass" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-title">🔑 Cambiar Contraseña</div>
+        <input type="password" id="cp-1" class="modal-input" placeholder="Nueva contraseña (mín. 6 caracteres)">
+        <input type="password" id="cp-2" class="modal-input" placeholder="Confirmar nueva contraseña">
+        <p id="cp-msg" style="font-size:0.82rem;margin-bottom:10px;min-height:18px;"></p>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" onclick="document.getElementById('modal-chpass').classList.remove('open')">Cancelar</button>
+            <button class="modal-btn confirm" onclick="saveNewPassword()">Guardar</button>
         </div>
     </div>
 </div>
@@ -376,6 +391,26 @@
     let activeMonth = null;
     let currentPage = 1;
     const PAGE_SIZE = 25;
+
+    // Cambiar contraseña desde dentro de la app
+    window.changePassword = () => {
+        document.getElementById('cp-1').value = '';
+        document.getElementById('cp-2').value = '';
+        document.getElementById('cp-msg').textContent = '';
+        document.getElementById('modal-chpass').classList.add('open');
+        setTimeout(() => document.getElementById('cp-1').focus(), 80);
+    }
+    window.saveNewPassword = async () => {
+        const p1 = document.getElementById('cp-1').value;
+        const p2 = document.getElementById('cp-2').value;
+        const msg = document.getElementById('cp-msg');
+        if (p1.length < 6) { msg.style.color='var(--red)'; msg.textContent='Mínimo 6 caracteres'; return; }
+        if (p1 !== p2)     { msg.style.color='var(--red)'; msg.textContent='Las contraseñas no coinciden'; return; }
+        const { error } = await supabase.auth.updateUser({ password: p1 });
+        if (error) { msg.style.color='var(--red)'; msg.textContent=error.message; return; }
+        msg.style.color='var(--green)'; msg.textContent='✅ Contraseña actualizada';
+        setTimeout(() => document.getElementById('modal-chpass').classList.remove('open'), 2000);
+    }
 
     // === AUTH ===
     window.showSignup = () => {
