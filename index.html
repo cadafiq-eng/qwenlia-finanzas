@@ -186,6 +186,7 @@
         <select class="sub-select" id="sub-select" onchange="onSubSelectChange(this.value)">
             <option value="">— Todas las subcuentas —</option>
         </select>
+        <button class="sub-manage-btn" id="btn-rename-sub" onclick="renameActiveSub()" title="Renombrar subcuenta" style="display:none; color:var(--accent); font-weight:bold;">✏️</button>
         <button class="sub-manage-btn" onclick="addSubAccount()" title="Nueva subcuenta" style="color:var(--green); font-weight:bold;">＋</button>
         <button class="sub-manage-btn" onclick="toggleSubManage()" title="Gestionar subcuentas">⚙️</button>
     </div>
@@ -222,6 +223,13 @@
     </div>
 
     <div id="table-section" style="display:none">
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+            <input type="text" id="search-box" placeholder="🔍 Buscar en movimientos…"
+                style="flex:1; min-width:180px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--text); font-size:0.85rem;"
+                oninput="currentPage=1; renderLedger()">
+            <button onclick="document.getElementById('search-box').value=''; currentPage=1; renderLedger();"
+                style="padding:7px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:#888; cursor:pointer; font-size:0.8rem;">✕ Limpiar</button>
+        </div>
         <div class="month-tabs" id="month-tabs"></div>
         <div class="table-wrap">
             <table>
@@ -610,9 +618,20 @@
     window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); document.getElementById('btn-export').style.display = active ? 'inline-block' : 'none'; renderAccounts(); renderSubAccounts(); if (active) renderLedger(); }
 
     window.onSubSelectChange = function(val) {
-        activeSub = val || null; activeMonth = null; currentPage = 1; renderLedger();
+        activeSub = val || null; activeMonth = null; currentPage = 1;
+        // Mostrar/ocultar botón de renombrar subcuenta activa
+        const btnRename = document.getElementById('btn-rename-sub');
+        if (btnRename) btnRename.style.display = activeSub ? 'inline-block' : 'none';
+        renderLedger();
         document.querySelectorAll('.sub-manage-item').forEach(el => { el.style.background = (el.dataset.sub === (activeSub || '')) ? 'rgba(232,160,32,0.15)' : ''; });
     }
+
+    // Renombrar subcuenta activa directamente desde el selector
+    window.renameActiveSub = async function() {
+        if (!activeSub) return;
+        await renameSubaccount(activeSub);
+    }
+
     window.toggleSubManage = function() { document.getElementById('sub-manage-panel').classList.toggle('open'); }
 
     function renderAccounts() {
@@ -700,6 +719,16 @@
             });
         } else { tabsEl.innerHTML = ''; activeMonth = null; }
         let movs = activeMonth ? base.filter(m => m.fecha && m.fecha.startsWith(activeMonth)) : base;
+        // Filtro de búsqueda
+        const searchQ = (document.getElementById('search-box')?.value || '').toLowerCase().trim();
+        if (searchQ) {
+            movs = movs.filter(m =>
+                (m.concepto || '').toLowerCase().includes(searchQ) ||
+                (m.subcuenta || '').toLowerCase().includes(searchQ) ||
+                (m.fecha || '').includes(searchQ) ||
+                String(m.importe).includes(searchQ)
+            );
+        }
         movs.sort((a, b) => sortDesc ? new Date(b.fecha) - new Date(a.fecha) : new Date(a.fecha) - new Date(b.fecha));
         const total = movs.length;
         const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
