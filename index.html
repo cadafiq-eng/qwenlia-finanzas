@@ -344,7 +344,7 @@
                 <li>Selecciona la categoría destino primero</li>
                 <li>Toca <strong>📂 CSV</strong> y elige el archivo</li>
                 <li>El CSV debe tener columnas: <code>date, note, income, expense</code></li>
-                <li>El nombre del archivo se usa como nombre de subcuenta</li>
+                <li>El nombre del archivo (sin .csv) se usa como nombre de subcuenta; si ya existe, se pide confirmación antes de agregar</li>
             </ol>
         </div>
 
@@ -571,12 +571,19 @@
         const payload = { user_id: currentUser.id, account, fecha: movimiento.fecha, concepto: movimiento.concepto, importe: movimiento.importe, subcuenta: movimiento.subcuenta || null, updated_at: new Date().toISOString(), priority: isPriority ? DEVICE_PRIORITY : 1, device: IS_IPHONE ? 'iphone' : 'desktop' };
         try {
             if (action === 'insert') { const { data, error } = await supabase.from('movimientos').insert(payload).select(); if (error) throw error; movimiento.id = data[0].id; }
-            else if (action === 'update') await supabase.from('movimientos').update(payload).eq('id', movimiento.id);
-            else if (action === 'delete') await supabase.from('movimientos').delete().eq('id', movimiento.id);
+            else {
+                if (String(movimiento.id).startsWith('temp_')) throw new Error('El movimiento aún no se ha sincronizado con la nube');
+                const q = action === 'update'
+                    ? supabase.from('movimientos').update(payload).eq('id', movimiento.id)
+                    : supabase.from('movimientos').delete().eq('id', movimiento.id);
+                const { error } = await q;
+                if (error) throw error;
+            }
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
         } catch (e) {
             pendingChanges.push({ movimiento, account, action, isPriority, ts: Date.now() });
             localStorage.setItem('qwenlia_data', JSON.stringify(db));
+            alert('⚠️ No se pudo guardar el cambio en la nube:\n' + (e.message || e) + '\n\nSe reintentará al recuperar la conexión. Si recargas la app antes, el cambio se perderá.');
         }
     }
 
@@ -654,7 +661,8 @@
         const list = document.getElementById('sub-manage-list');
         if (!active || !db[active]) { row.style.display = 'none'; return; }
         const movs = db[active].movimientos;
-        const subs = [...new Set(movs.map(m => m.subcuenta).filter(Boolean))];
+        const subs = [...new Set(movs.map(m => m.subcuenta).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base', numeric: true }));
         if (subs.length === 0) { row.style.display = 'none'; return; }
         row.style.display = 'flex';
         sel.innerHTML = '<option value="">— Todas las subcuentas —</option>';
@@ -778,7 +786,9 @@
     window.importCSV = async function(e) {
         if (!active) return alert("Selecciona una categoría primero");
         const file = e.target.files[0];
-        const subName = file.name.replace('.csv', '').substring(0, 8);
+        const subName = file.name.replace(/\.csv$/i, '').substring(0, 40);
+        if (db[active].movimientos.some(m => m.subcuenta === subName) &&
+            !confirm(`La subcuenta "${subName}" ya existe. Los movimientos del CSV se AGREGARÁN a ella.\n¿Continuar?`)) { e.target.value = ''; return; }
         const reader = new FileReader();
         reader.onload = async (ev) => {
             const content = ev.target.result.replace(/^\ufeff/, "").replace(/\r/g, "");
@@ -813,8 +823,9 @@
                     count++;
                 } else { skipped++; }
             }
+            e.target.value = '';
             renderSubAccounts(); sync();
-            alert(`✅ Importados: ${count}\n⏭️ Saltadas: ${skipped}`);
+            alert(`✅ Importados: ${count} en "${subName}"\n⏭️ Saltadas: ${skipped}`);
         };
         reader.readAsText(file);
     }
@@ -825,6 +836,7 @@
         if (!db[active]) db[active] = { movimientos: [] };
         const f = document.getElementById('f-fecha').value, n = document.getElementById('f-nota').value, m = parseFloat(document.getElementById('f-monto').value), id = document.getElementById('edit-id').value;
         if (!f || !n || isNaN(m)) return alert("Datos incompletos");
+        if (!id && !activeSub && !confirm('No hay subcuenta seleccionada: el movimiento se guardará en "Manual".\n¿Continuar?')) return;
         const subVal = activeSub || (id && db[active].movimientos.find(x => x.id === id) ? db[active].movimientos.find(x => x.id === id).subcuenta : 'Manual');
         if (id) {
             const i = db[active].movimientos.findIndex(x => x.id === id);
@@ -883,7 +895,10 @@
     }
     window.deleteAccount = async function() {
         if(confirm("¿Eliminar cuenta y todos sus movimientos?")) {
-            if(supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active);
+            if(supabaseConnected && currentUser) {
+                const { error } = await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active);
+                if (error) return alert('⚠️ No se pudo eliminar en la nube: ' + error.message);
+            }
             delete db[active]; active = null; activeSub = null; sync(); location.reload();
         }
     }
@@ -892,7 +907,11 @@
         if (!active || !db[active]) return;
         const index = db[active].movimientos.findIndex(m => m.id === id);
         if (index === -1) return;
-        if (supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('id', id);
+        if (supabaseConnected && currentUser) {
+            if (String(id).startsWith('temp_')) return alert('⚠️ Este movimiento aún no se sincroniza. Espera un momento e inténtalo de nuevo.');
+            const { error } = await supabase.from('movimientos').delete().eq('id', id);
+            if (error) return alert('⚠️ No se pudo eliminar en la nube: ' + error.message);
+        }
         db[active].movimientos.splice(index, 1); sync();
     }
     window.edit = function(id) {
@@ -913,8 +932,11 @@
         const newName = await openModal('Renombrar categoría', oldName);
         if (!newName || newName === oldName) return;
         if (db[newName]) return alert('Ya existe una categoría con ese nombre.');
+        if(supabaseConnected && currentUser) {
+            const { error } = await supabase.from('movimientos').update({ account: newName }).eq('user_id', currentUser.id).eq('account', oldName);
+            if (error) return alert('⚠️ No se pudo renombrar en la nube: ' + error.message);
+        }
         db[newName] = db[oldName]; delete db[oldName];
-        if(supabaseConnected && currentUser) await supabase.from('movimientos').update({ account: newName }).eq('user_id', currentUser.id).eq('account', oldName);
         if (active === oldName) active = newName;
         activeSub = null; sync();
     }
@@ -922,8 +944,14 @@
         if (!active || !db[active]) return;
         const newSub = await openModal('Renombrar subcuenta', oldSub);
         if (!newSub || newSub === oldSub) return;
+        if (db[active].movimientos.some(m => m.subcuenta === newSub))
+            return alert(`Ya existe una subcuenta llamada "${newSub}". Elige otro nombre para no mezclar sus movimientos.`);
+        if(supabaseConnected && currentUser) {
+            const { error } = await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', oldSub);
+            if (error) return alert('⚠️ No se pudo renombrar en la nube: ' + error.message);
+        }
         db[active].movimientos.forEach(m => { if (m.subcuenta === oldSub) m.subcuenta = newSub; });
-        if(supabaseConnected && currentUser) await supabase.from('movimientos').update({ subcuenta: newSub }).eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', oldSub);
+        if (activeSub === oldSub) activeSub = newSub;
         renderSubAccounts(); renderLedger();
         localStorage.setItem('qwenlia_data', JSON.stringify(db));
     }
@@ -931,7 +959,10 @@
         if (!active || !db[active]) return;
         const movs = db[active].movimientos.filter(m => m.subcuenta === sub);
         if (!confirm(`¿Eliminar la subcuenta "${sub}" y sus ${movs.length} movimiento(s)?`)) return;
-        if (supabaseConnected && currentUser) await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', sub);
+        if (supabaseConnected && currentUser) {
+            const { error } = await supabase.from('movimientos').delete().eq('user_id', currentUser.id).eq('account', active).eq('subcuenta', sub);
+            if (error) return alert('⚠️ No se pudo eliminar en la nube: ' + error.message);
+        }
         db[active].movimientos = db[active].movimientos.filter(m => m.subcuenta !== sub);
         if (activeSub === sub) activeSub = null;
         localStorage.setItem('qwenlia_data', JSON.stringify(db));
