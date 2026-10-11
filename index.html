@@ -219,7 +219,8 @@
         <label class="btn btn-import">
             📂 CSV <input type="file" id="csv" style="display:none" onchange="importCSV(event)">
         </label>
-        <button class="btn btn-export" id="btn-export" style="display:none;" onclick="exportToExcel()">📊 Excel</button>
+        <button class="btn btn-export" id="btn-export" style="display:none;" onclick="exportToExcel()" title="Exportar movimientos en CSV">📄 CSV</button>
+        <button class="btn btn-export" id="btn-respaldo" style="display:none; background:#16a085;" onclick="exportRespaldo()" title="Descargar respaldo en Excel con formato, saldo acumulado y totales">💾 Respaldo</button>
     </div>
 
     <div id="table-section" style="display:none">
@@ -362,7 +363,9 @@
             <h4>💾 Respaldo</h4>
             <ul>
                 <li>Los datos se guardan en la nube (Supabase) en tiempo real</li>
-                <li>Usa <strong>📊 Excel</strong> para descargar respaldo local periódicamente</li>
+                <li>Usa <strong>💾 Respaldo</strong> para descargar un Excel (.xlsx) con saldo acumulado y totales; si no hay subcuenta seleccionada, incluye una hoja por subcuenta</li>
+                <li>Las filas en amarillo son posibles duplicados (misma fecha, concepto e importe)</li>
+                <li><strong>📄 CSV</strong> exporta los movimientos en texto plano</li>
                 <li>El archivo descargado es compatible con Excel y Google Sheets</li>
             </ul>
         </div>
@@ -622,7 +625,7 @@
 
     // === UI ===
     window.toggleTheme = () => document.body.classList.toggle('dark');
-    window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); document.getElementById('btn-export').style.display = active ? 'inline-block' : 'none'; renderAccounts(); renderSubAccounts(); if (active) renderLedger(); }
+    window.sync = () => { localStorage.setItem('qwenlia_data', JSON.stringify(db)); document.getElementById('btn-export').style.display = active ? 'inline-block' : 'none'; document.getElementById('btn-respaldo').style.display = active ? 'inline-block' : 'none'; renderAccounts(); renderSubAccounts(); if (active) renderLedger(); }
 
     window.onSubSelectChange = function(val) {
         activeSub = val || null; activeMonth = null; currentPage = 1;
@@ -967,6 +970,132 @@
         if (activeSub === sub) activeSub = null;
         localStorage.setItem('qwenlia_data', JSON.stringify(db));
         renderSubAccounts(); renderLedger();
+    }
+
+    // === RESPALDO EXCEL (.xlsx con formato y fórmulas) ===
+    // Construye un libro con una hoja por subcuenta. Función pura: recibe ExcelJS y los datos.
+    function buildRespaldoWorkbook(ExcelJS, categoria, subcuentas, movsPorSub, fechaExport) {
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'QwenLIA Finanzas';
+        const F = (o = {}) => ({ name: 'Arial', size: 10, ...o });
+        const money = '$#,##0.00;($#,##0.00);-';
+        const thin = { style: 'thin', color: { argb: 'FFBFBFBF' } };
+        const fill = c => ({ type: 'pattern', pattern: 'solid', fgColor: { argb: c } });
+        const usados = new Set();
+        const sheetName = s => {
+            let n = (s || 'Sin subcuenta').replace(/[\[\]:*?\/\\]/g, '-').substring(0, 31) || 'Hoja';
+            let base = n, i = 2;
+            while (usados.has(n.toLowerCase())) n = base.substring(0, 28) + ' ' + i++;
+            usados.add(n.toLowerCase());
+            return n;
+        };
+        const toDate = f => { const [y, m, d] = String(f).split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+
+        subcuentas.forEach(sub => {
+            // Orden cronológico ascendente; estable dentro del mismo día. Omite marcadores de 0 ("Subcuenta creada").
+            const movs = (movsPorSub[sub] || [])
+                .filter(m => m.fecha && Number(m.importe) !== 0)
+                .map((m, i) => ({ ...m, _i: i }))
+                .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a._i - b._i));
+            const ws = wb.addWorksheet(sheetName(sub), { views: [{ state: 'frozen', ySplit: 4 }] });
+            ws.columns = [{ width: 12 }, { width: 40 }, { width: 14 }, { width: 14 }, { width: 14 }, { width: 17 }];
+            ws.getCell('A1').value = `QwenLIA Finanzas · Categoría ${categoria} · Subcuenta ${sub || 'Sin subcuenta'}`;
+            ws.getCell('A1').font = F({ bold: true, size: 13 });
+            ws.getCell('A2').value = `Respaldo exportado de la app el ${fechaExport} · importes en MXN`;
+            ws.getCell('A2').font = F({ italic: true, size: 9, color: { argb: 'FF666666' } });
+            const hdr = ws.getRow(4);
+            ['Fecha', 'Concepto', 'Ingreso', 'Egreso', 'Importe', 'Saldo acumulado'].forEach((h, j) => {
+                const c = hdr.getCell(j + 1);
+                c.value = h; c.font = F({ bold: true, color: { argb: 'FFFFFFFF' } });
+                c.fill = fill('FF1F3864'); c.alignment = { horizontal: 'center' };
+            });
+            const r0 = 5;
+            // Detecta posibles duplicados: misma fecha, mismo concepto (sin mayúsculas/espacios) y mismo importe
+            const vistos = new Set();
+            movs.forEach((m, k) => {
+                const r = r0 + k, imp = Number(m.importe);
+                const row = ws.getRow(r);
+                row.getCell(1).value = toDate(m.fecha); row.getCell(1).numFmt = 'yyyy-mm-dd';
+                row.getCell(2).value = (m.concepto || '').trim();
+                row.getCell(3).value = imp > 0 ? imp : 0;
+                row.getCell(4).value = imp < 0 ? -imp : 0;
+                row.getCell(5).value = { formula: `C${r}-D${r}`, result: imp };
+                row.getCell(6).value = { formula: k === 0 ? `E${r}` : `F${r - 1}+E${r}` };
+                for (let j = 1; j <= 6; j++) {
+                    const c = row.getCell(j);
+                    c.font = F(j === 3 || j === 4 ? { color: { argb: 'FF0000FF' } } : {});
+                    c.border = { bottom: thin };
+                    if (j >= 3) c.numFmt = money;
+                }
+                const key = `${m.fecha}|${(m.concepto || '').trim().toLowerCase()}|${imp}`;
+                if (vistos.has(key)) {
+                    for (let j = 1; j <= 6; j++) row.getCell(j).fill = fill('FFFFF2CC');
+                    row.getCell(2).note = 'Posible duplicado: misma fecha, concepto e importe que otro movimiento. Verificar en la app.';
+                }
+                vistos.add(key);
+            });
+            const rl = r0 + Math.max(movs.length, 1) - 1;
+            const t = rl + 2;
+            const tot = [
+                ['Total ingresos', `SUM(C${r0}:C${rl})`, money],
+                ['Total egresos', `SUM(D${r0}:D${rl})`, money],
+                ['Saldo final', `C${t}-C${t + 1}`, money],
+                ['Movimientos', `COUNTA(B${r0}:B${rl})`, '0'],
+            ];
+            tot.forEach(([l, f, nf], k) => {
+                const a = ws.getCell(t + k, 2), b = ws.getCell(t + k, 3);
+                a.value = l; a.font = F({ bold: true });
+                b.value = { formula: f }; b.font = F({ bold: true }); b.numFmt = nf;
+            });
+            ws.getCell(t + 2, 2).fill = ws.getCell(t + 2, 3).fill = fill('FFE2EFDA');
+            const n = ws.getCell(t + 5, 1);
+            n.value = 'Azul = valores capturados; negro = fórmulas. Amarillo = posible duplicado a verificar.';
+            n.font = F({ italic: true, size: 9, color: { argb: 'FF666666' } });
+            if (movs.length) ws.autoFilter = `A4:F${rl}`;
+            ws.pageSetup = { orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+        });
+        return wb;
+    }
+
+    function loadExcelJS() {
+        if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+        return new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+            s.onload = () => res(window.ExcelJS);
+            s.onerror = () => rej(new Error('No se pudo cargar el generador de Excel. Revisa tu conexión.'));
+            document.head.appendChild(s);
+        });
+    }
+
+    window.exportRespaldo = async function() {
+        if (!active || !db[active]) return alert('Selecciona una categoría primero');
+        const movs = db[active].movimientos;
+        const subs = activeSub ? [activeSub]
+            : [...new Set(movs.map(m => m.subcuenta || ''))].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base', numeric: true }));
+        const porSub = {};
+        subs.forEach(s => porSub[s] = movs.filter(m => (m.subcuenta || '') === s));
+        if (!subs.some(s => porSub[s].some(m => Number(m.importe) !== 0))) return alert('No hay movimientos para exportar');
+        const btn = document.getElementById('btn-respaldo');
+        const txt = btn.textContent; btn.textContent = '⏳ Generando…'; btn.disabled = true;
+        try {
+            const ExcelJS = await loadExcelJS();
+            const hoy = new Date(); const p = n => String(n).padStart(2, '0');
+            const fecha = `${hoy.getFullYear()}-${p(hoy.getMonth() + 1)}-${p(hoy.getDate())}`;
+            const wb = buildRespaldoWorkbook(ExcelJS, active, subs, porSub, fecha);
+            const buf = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const safe = s => s.replace(/[^\p{L}\p{N}_-]+/gu, '_');
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `QwenLIA_${safe(active)}${activeSub ? '_' + safe(activeSub) : ''}_respaldo_${fecha}.xlsx`;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+        } catch (e) {
+            alert('⚠️ ' + (e.message || e));
+        } finally {
+            btn.textContent = txt; btn.disabled = false;
+        }
     }
 
     // === EXPORT ===
